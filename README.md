@@ -22,14 +22,14 @@ shiny::runGitHub('PlotsOfDifferences', 'JoachimGoedhart')
 
 Or download it to use it offline:
 
--download the app.R and csv files with example data.
+-download the app.R, geom_flat_violin.R and csv files with example data.
 
 -Run RStudio and load app.R
 
 -Select 'Run All' (shortcut is command-option-R on a Mac) or click on "Run App" (upper right button on the window)
 
 This should launch a web browser with the Shiny app.
-Note that the app depends on several R packages that need to be installed (shiny, ggplot2, dplyr, tidyr, readr, magrittr, ggbeeswarm, readxl, gridExtra)
+Note that the app depends on several R packages that need to be installed (shiny, ggplot2, dplyr, tidyr, readr, magrittr, ggbeeswarm, readxl, gridExtra). It also uses geom_flat_violin.R (https://gist.github.com/dgrtwo/eb7750e74997891d7c20)
 
 
 ### Credits
@@ -42,4 +42,6 @@ PlotsOfData is created and maintained by Joachim Goedhart ([@joachimgoedhart](ht
 
 ### Example output
 
-![alt text](https://github.com/JoachimGoedhart/Plotsofdata/blob/master/DifferencesPlot_example1.png "Output")
+![alt text](https://github.com/JoachimGoedhart/PlotsOfDifferences/blob/master/DifferencesPlot_example1.png "Output")
+
+
