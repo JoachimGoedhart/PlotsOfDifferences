@@ -166,19 +166,17 @@ ui <- fluidPage(
         ),
         checkboxInput(inputId = "adj_fnt_sz",
               label = "Change font size",
-              value = FALSE)
-        ),
+              value = FALSE),
        conditionalPanel(
               condition = "input.adj_fnt_sz == true",
               numericInput("fnt_sz_ttl", "Size axis titles:", value = 24),
-              numericInput("fnt_sz_ax", "Size axis labels:", value = 18)
- 
-      ),
+              numericInput("fnt_sz_ax", "Size axis labels:", value = 18)),
         conditionalPanel(
           condition = "input.color_data == true || input.color_stats == true",
           checkboxInput(inputId = "add_legend",
                         label = "Add legend",
-                        value = FALSE)),
+                        value = FALSE))
+      ),
       conditionalPanel(
         condition = "input.tabs=='Data upload'",
         h4("Data upload"),
