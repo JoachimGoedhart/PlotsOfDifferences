@@ -11,6 +11,22 @@
 # The differences (effect sizes) are determined from bootstrap samples of either mean or median
 # A plot and a table with stats are generated
 ##############################################################################
+# Copyright (C) 2018  Joachim Goedhart
+# electronic mail address: j #dot# goedhart #at# uva #dot# nl
+# 
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+# 
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+# 
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+##############################################################################
 
 # ToDo
 # Implement fold-change as an effect size
@@ -704,14 +720,18 @@ plot_data <-  reactive ({
 
      p <- p+ theme_light(base_size = 16)
     
-    #### If selected, rotate plot 90 degrees CW ####
-    if (input$rotate_plot == FALSE) { p <- p + coord_flip()}
-    
-    # if the range of values is specified    
-    if (input$adjust_scale == TRUE) { 
-      rng <- as.numeric(strsplit(input$range,",")[[1]])
-      p <- p + ylim(rng[1],rng[2])}
-
+     #### If selected, rotate plot 90 degrees CW ####
+     rng <- as.numeric(strsplit(input$range,",")[[1]])
+     
+     # if the range of values is specified    
+     if (input$adjust_scale == TRUE) { 
+       p <- p + coord_cartesian(ylim=c(rng[1],rng[2]))
+     } else if (input$adjust_scale == FALSE)
+     {
+       rng <- c(NULL,NULL)
+     }
+     if (input$rotate_plot == FALSE) { p <- p + coord_flip(ylim=c(rng[1],rng[2]))}
+     
     # if title specified
     if (input$add_title)
       p <- p + ggtitle(input$title)
