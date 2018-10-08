@@ -563,30 +563,56 @@ height <- reactive ({
   height <- input$plot_height
   if (input$show_diffs && input$rotate_plot) {height <- height*2}
   return(height)
-  
   })
 
+
 output$downloadPlotPDF <- downloadHandler(
-  filename <- function() {
-    paste("ComparisonPlot_", Sys.time(), ".pdf", sep = "")
+    filename <- function() {
+    paste("PlotsOfDiffs_", Sys.time(), ".pdf", sep = "")
   },
   content <- function(file) {
-    ggsave(file, width = input$plot_width/72,
-           height = input$plot_height/72, dpi="retina")
+
+    plotlist <- list(plot_data(), plot_diffs())
+    to_keep <- !sapply(plotlist,is.null)
+    plotlist <- plotlist[to_keep]
+    if (input$rotate_plot == TRUE) {
+      pdf(file, width = input$plot_width/72, height = input$plot_height/72*2)
+      
+      grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
+    } else if (input$rotate_plot == FALSE) {
+      pdf(file, width = input$plot_width/72*2, height = input$plot_height/72)
+      grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
+    }
+    
+    dev.off()
   },
   contentType = "application/pdf" # MIME type of the image
 )
 
 output$downloadPlotPNG <- downloadHandler(
   filename <- function() {
-    paste("ComparisonPlot_", Sys.time(), ".png", sep = "")
+    paste("PlotsOfDiffs_", Sys.time(), ".png", sep = "")
   },
   content <- function(file) {
-    ggsave(file, width = input$plot_width/72,
-           height = input$plot_height/72)
+    
+    plotlist <- list(plot_data(), plot_diffs())
+    to_keep <- !sapply(plotlist,is.null)
+    plotlist <- plotlist[to_keep]
+    if (input$rotate_plot == TRUE) {
+      png(file, width = input$plot_width*4, height = input$plot_height*8, res=300)
+      grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
+    } else if (input$rotate_plot == FALSE) {
+      png(file, width = input$plot_width*8, height = input$plot_height*4, res=300)
+      
+      grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
+    }
+    
+    dev.off()
+    
   },
   contentType = "application/png" # MIME type of the image
 )
+
 
  ###########################################
 
