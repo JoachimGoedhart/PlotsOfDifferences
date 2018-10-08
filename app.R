@@ -574,7 +574,7 @@ output$downloadPlotPDF <- downloadHandler(
 
     plotlist <- list(plot_data(), plot_diffs())
     to_keep <- !sapply(plotlist,is.null)
-    plotlist <- plotlist[to_keep]
+    plotlist <- plotlist[to_keep] 
     if (input$rotate_plot == TRUE) {
       pdf(file, width = input$plot_width/72, height = input$plot_height/72*2)
       
