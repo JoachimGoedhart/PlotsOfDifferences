@@ -15,7 +15,7 @@ The differences plot can be saved as a PDF file, which can be opened and edited 
 
 ### Running the App
 
-A shiny server running the app [is available: ](https://huygens.science.uva.nl/PlotsOfDifferences/)
+A shiny server running the app [is available: https://huygens.science.uva.nl/PlotsOfDifferences/](https://huygens.science.uva.nl/PlotsOfDifferences/)
 
 The app can also run locally from R/Rstudio:
 
