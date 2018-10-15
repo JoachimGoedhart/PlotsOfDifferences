@@ -31,7 +31,6 @@
 # ToDo
 # Implement fold-change as an effect size
 
-
 library(shiny)
 library(ggplot2)
 library(dplyr)
@@ -268,10 +267,14 @@ ui <- fluidPage(
       ),
       
       conditionalPanel(
-        condition = "input.tabs=='Data Summary'",
-        h4("Data summary")    
+        condition = "input.tabs=='Summary'",
+        h4("Data summary"),
+        checkboxInput(inputId = "calc_p",
+                      label = "Display p-value",
+                      value = FALSE),
+        p("The p-value is determined by a randomization test, calculation may take some time")
       )
-      
+
     ),
     mainPanel(
  
@@ -279,7 +282,18 @@ ui <- fluidPage(
                   tabPanel("Data upload", h4("Data as provided"), dataTableOutput("data_uploaded")),
                   tabPanel("Plot", downloadButton("downloadPlotPDF", "Download pdf-file"), downloadButton("downloadPlotPNG", "Download png-file"), plotOutput("coolplot")
                   ), 
-                  tabPanel("Summary",h4("Summary of the data"), tableOutput('data_summary'),h4("Summary of the differences"),tableOutput('data_diffs')),
+                  tabPanel("Summary",
+                           conditionalPanel(
+                             condition = "input.summaryInput=='mean'",
+                             h4("Summary of the differences - based on means")),
+                           conditionalPanel(
+                             condition = "input.summaryInput!='mean'",
+                             h4("Summary of the differences - based on medians")),
+                           dataTableOutput('data_diffs'),
+                           h4("Summary of the data"),
+                           dataTableOutput('data_summary')
+
+                            ),
                   tabPanel("About", includeHTML("about.html")
                            )
                   
@@ -539,15 +553,95 @@ df_summary_diffs <- reactive({
       CI_lo=quantile(Difference, probs=lower_percentile),
       CI_hi=quantile(Difference, probs=upper_percentile))
 
-  
-
-    observe({ print(df_diff_summary)})
-  
+ #   observe({ print(df_diff_summary)})
   
   return(df_diff_summary)
 })
 
+ ####################################################
+####### Calculate the p-value by randomization #######
 
+df_p <- reactive({
+  
+  control_condition <- as.character(input$zero)
+  kees <- df_selected()
+  
+  df_spread <- kees %>% group_by(Condition) %>% mutate(id = 1:n()) %>% spread(Condition, Value)
+  #need this to get the base R syntax in the next line to calculate differences to work
+  df_spread <- as.data.frame(df_spread)
+  
+  #Extract the list of values that correspond to control condition
+#  Controls <- (df_spread[,control_condition]) %>% na.omit %>% unlist(use.names = FALSE)
+  Controls <- df_spread %>% select(!!control_condition) %>% filter(!is.na(.)) %>% unlist(use.names = FALSE)
+  
+  
+  #Median and mean values as reference/observed values
+  df_obs_stats <- kees %>% group_by(Condition) %>% summarise(mean=mean(Value, na.rm=TRUE), median=median(Value, na.rm=TRUE))
+  
+  #generate a df with differences from the observations
+  df_obs_stats$mean <- df_obs_stats$mean - mean(Controls)
+  df_obs_stats$median <- df_obs_stats$median - median(Controls)
+
+  observe({ print(df_obs_stats)})
+  
+    
+  #Determine number of observations in Control sample
+  number_controls <- length(Controls)
+
+  observe({ print(number_controls)})
+#  observe({ print(Controls)})
+
+  #Make a new dataframe with control values for each of the conditions
+  df_controls <- data.frame(Condition=rep(levels(factor(kees$Condition)), each=number_controls), Value=Controls)
+
+  #Add the original data, generating (per condition) Control&Sample values in the column "Value".
+  df_combi <- bind_rows(df_controls, kees) %>% filter(!is.na(Value))
+  
+  df_new_stats <- data.frame()
+
+  #Perform the randomization nsteps number of times (typically 1,000x)
+  for (i in 1:nsteps) {
+    
+    #Randomize the dataframe
+    df_permutated <- df_combi %>% group_by(Condition) %>% sample_frac()
+    
+    #Determine the (new) control mean and (new) sample mean
+    df_control <- df_permutated %>% slice(1: number_controls) %>% summarise(new_control_mean=mean(Value), new_control_median=median(Value))
+    df_sample <- df_permutated %>% slice((number_controls+1):length(Value))%>% summarise(new_sample_mean=mean(Value), new_sample_median=median(Value))
+    df_diff <- full_join(df_control, df_sample,by="Condition")
+    
+    df_new_stats <- bind_rows(df_new_stats, df_diff)
+    
+  }
+  
+  #Calculate the difference in mean and median (sample-control) for all the calculated new stats
+  df_all_diffs <- df_new_stats %>% mutate(new_diff_mean=new_sample_mean-new_control_mean,
+                                          new_diff_median=new_sample_median-new_control_median)
+  
+
+  
+  #Add the observed stats to stats from permutated df
+  df_all_diffs <- full_join(df_all_diffs, df_obs_stats, by="Condition")
+  
+  observe({ print(head(df_all_diffs))})
+  
+  #Determine the occurences where the permutated difference is more extreme than the observed difference
+  if (input$summaryInput == "mean") {
+  def_p <- df_all_diffs %>% group_by(Condition) %>% mutate(count = if_else(abs(new_diff_mean) >= abs(mean), 1, 0)) %>% summarise(p_mean=mean(count))
+  } else if (input$summaryInput != "mean") {
+  def_p <- df_all_diffs %>% group_by(Condition) %>% mutate(count2 = if_else(abs(new_diff_median) >= abs(median), 1, 0)) %>% summarise(p_median=mean(count2))
+  }
+  
+  
+  def_p <- as.data.frame(def_p)
+
+  #Replace p-values of zero with <0.001 (0 is theoretically not possible, but an upper bound can estimated, which is 1/nsteps = 1/1000)
+  def_p[def_p==0]<-"<0.001"
+  
+  return(def_p)
+})
+
+ ####################################################
 
 
  ###########################################
@@ -946,7 +1040,7 @@ output$coolplot <- renderPlot(width = width, height = height, {
 ###########################################
 #### Render the data summary as a table ###########
 
-output$data_summary <- renderTable({
+output$data_summary <- renderDataTable({
 
   #### Select the relevant stats and use these for a table with summary
   df_out <- NULL
@@ -963,12 +1057,22 @@ output$data_summary <- renderTable({
 ###########################################
 #### Render the differences summary as a table ###########
 
-output$data_diffs <- renderTable({
+output$data_diffs <- renderDataTable({
   
   control_condition <- as.character(input$zero)
   df_temp <- df_summary_diffs()
   #Remove the reference condition from the table
 #  df_temp <- df_temp %>% filter(Condition != control_condition)
+
+  ##Do not plot values for reference
+  df_temp[df_temp==0]<-NA
+  
+  if (input$calc_p == TRUE) {
+    def_p <- df_p()
+    df_temp <- left_join(df_temp,def_p,by="Condition")
+  }
+  #Print stats of differences to console
+  observe({ print(df_temp)})
   
   return(df_temp)
 })

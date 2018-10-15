@@ -11,11 +11,13 @@ Bootstrapping is used to calculate the (asymmetric) 95% CI of medians as well as
 The data can be supplied in spreadsheet/long format (e.g. by copy-pasting from excel) or in tidy format. For more information on the conversion of spreadsheet data to tidy data see [this blog](http://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/).
 
 The differences plot can be saved as a PDF file, which can be opened and edited with Adobe Illustrator to allow for fine adjustments of the lay-out.
-Known issue: only the differences plot will be saved when using the "download" buttons. To get both plots either (1) make a screenshot, or (2) copy/save the image directly from the web browser as a single image with two panels.
+
 
 ### Running the App
 
-Currently, the app can only run from R/Rstudio.
+A shiny server running the app [is available: ](https://huygens.science.uva.nl/PlotsOfDifferences/)
+
+The app can also run locally from R/Rstudio:
 
 Give it a quick try by running it directly from Github. In the command line (in R or Rstudio) type
 shiny::runGitHub('PlotsOfDifferences', 'JoachimGoedhart')
@@ -37,6 +39,7 @@ Note that the app depends on several R packages that need to be installed (shiny
 PlotsOfData is inspired by [BoxPlotR](http://shiny.chemgrid.org/boxplotr/). See [this link](https://www.nature.com/articles/nmeth.2813) for background information on boxplots.  
 The code for the shiny app is partially derived from [ggplotGUI](https://github.com/gertstulp/ggplotgui) by [Gert Stulp](https://www.gertstulp.com)  
 The colorblind safe palettes were developed by [Paul Tol](https://personal.sron.nl/~pault/).
+The display of bootstrap distributions is inspired by [work of Adam Claridge-Chang: ](https://www.nature.com/articles/nmeth.4148">(Mohammad et al., 2017)
 
 PlotsOfData is created and maintained by Joachim Goedhart ([@joachimgoedhart](https://twitter.com/joachimgoedhart))and Marten Postma
 
