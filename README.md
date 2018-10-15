@@ -15,7 +15,7 @@ The differences plot can be saved as a PDF file, which can be opened and edited 
 
 ### Running the App
 
-A shiny server running the app [is available: https://huygens.science.uva.nl/PlotsOfDifferences/](https://huygens.science.uva.nl/PlotsOfDifferences/)
+A shiny server running the app is available: [https://huygens.science.uva.nl/PlotsOfDifferences/](https://huygens.science.uva.nl/PlotsOfDifferences/)
 
 The app can also run locally from R/Rstudio:
 
@@ -39,9 +39,9 @@ Note that the app depends on several R packages that need to be installed (shiny
 PlotsOfData is inspired by [BoxPlotR](http://shiny.chemgrid.org/boxplotr/). See [this link](https://www.nature.com/articles/nmeth.2813) for background information on boxplots.  
 The code for the shiny app is partially derived from [ggplotGUI](https://github.com/gertstulp/ggplotgui) by [Gert Stulp](https://www.gertstulp.com)  
 The colorblind safe palettes were developed by [Paul Tol](https://personal.sron.nl/~pault/).
-The display of bootstrap distributions is inspired by [work of Adam Claridge-Chang: ](https://www.nature.com/articles/nmeth.4148">(Mohammad et al., 2017)
+The display of bootstrap distributions is inspired by [work of Adam Claridge-Chang and colleagues: ](https://www.nature.com/articles/nmeth.4148) (Mohammad et al., 2017)
 
-PlotsOfData is created and maintained by Joachim Goedhart ([@joachimgoedhart](https://twitter.com/joachimgoedhart))and Marten Postma
+PlotsOfData is created and maintained by Joachim Goedhart ([@joachimgoedhart](https://twitter.com/joachimgoedhart)) and Marten Postma
 
 ### Example output
 
