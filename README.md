@@ -4,7 +4,7 @@ A Shiny App for comparison of samples
 ### About PlotsOfDifferences
 
 The PlotsOfDifferences Shiny app plots the data, statistics and (optional) differences to enable the comparison of (experimental) conditions. The philosophy of the approach is that plotting the raw data (instead of a summary) improves transparency and interpretation [this blog](http://thenode.biologists.com/leaving-bar-five-steps/)). To further facilitate the comparison, summary statistics (mean, median, boxplot) and inferential statistics (confidence intervals) can be added. The user has full control over the visibility of the raw data and statistics by adjustment of the transparency (alpha). Finally, differences between central values (mean or median) can be quantified, reflecting effect size. To this end, a reference condition ('control') must be defined, which can be changed by the user. The 95%CI of the difference per condition is calculated from 1000 bootstrap samples (their distribution is shown in the difference plot) of the statistic (mean of median).
-A table with summary and inferential statistics is provided on a separate tab. There is an option to add a p-value which is calculated by a randomization test
+A table with summary and inferential statistics is provided on a separate tab. There is an option to add a p-value which is calculated by a [randomization test].(https://www.uvm.edu/~dhowell/StatPages/Randomization%20Tests/Random2Sample/twoindependentsamples.html)
 
 
 Bootstrapping is used to calculate the (asymmetric) 95% CI of medians as well as the differences. More information in [this blog](http://thenode.biologists.com/a-better-bar/education/)
