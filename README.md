@@ -8,6 +8,8 @@ The PlotsOfDifferences Shiny app plots the data, statistics and (optional) diffe
 
 Bootstrapping is used to calculate the (asymmetric) 95% CI of medians as well as the differences. More information in [this blog](http://thenode.biologists.com/a-better-bar/education/)
 
+The p-values that are (optionally) listed in the summary table is the output of a [randomization test.](https://www.pmrjournal.org/article/S1934-1482(17)30168-5/abstract)
+
 The data can be supplied in spreadsheet/long format (e.g. by copy-pasting from excel) or in tidy format. For more information on the conversion of spreadsheet data to tidy data see [this blog](http://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/).
 
 The differences plot can be saved as a PDF file, which can be opened and edited with Adobe Illustrator to allow for fine adjustments of the lay-out.
