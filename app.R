@@ -39,6 +39,7 @@ library(readr)
 library(magrittr)
 library(ggbeeswarm)
 library(readxl)
+library(DT)
 library(gridExtra)
 
 source("geom_flat_violin.R")
@@ -280,7 +281,7 @@ ui <- fluidPage(
  
        tabsetPanel(id="tabs",
                   tabPanel("Data upload", h4("Data as provided"), dataTableOutput("data_uploaded")),
-                  tabPanel("Plot", downloadButton("downloadPlotPDF", "Download pdf-file"), downloadButton("downloadPlotPNG", "Download png-file"), plotOutput("coolplot")
+                  tabPanel("Plot", downloadButton("downloadPlotPDF", "Download pdf-file"), downloadButton("downloadPlotPNG", "Download png-file"), div(`data-spy`="affix", `data-offset-top`="10", plotOutput("coolplot"))
                   ), 
                   tabPanel("Summary",
                            conditionalPanel(
@@ -1050,7 +1051,22 @@ output$data_summary <- renderDataTable({
   df_out <- df_summary() %>% select(Condition,n,mean,median,IQR,MAD,CI_lo=median_CI_lo,CI_hi=median_CI_hi)
   } 
 
-  return(df_out)
+  
+  
+#Add dowloadbuttons and allow reordering  
+  datatable(
+    df_out,
+    #  colnames = c(ID = 1),
+    selection = 'none',
+    extensions = c('Buttons', 'ColReorder'),
+    options = list(dom = 'Bfrtip',
+                   buttons = c('copy', 'csv','excel', 'pdf'),
+                   editable=FALSE, colReorder = list(realtime = FALSE), columnDefs = list(list(className = 'dt-center', targets = '_all'))
+    ) 
+  ) 
+  
+  
+
 })
 ###########################################
 
@@ -1073,8 +1089,19 @@ output$data_diffs <- renderDataTable({
   }
   #Print stats of differences to console
   observe({ print(df_temp)})
+
+  #Add dowloadbuttons and allow reordering  
+  datatable(
+    df_temp,
+    #  colnames = c(ID = 1),
+    selection = 'none',
+    extensions = c('Buttons', 'ColReorder'),
+    options = list(dom = 'Bfrtip',
+                   buttons = c('copy', 'csv','excel', 'pdf'),
+                   editable=FALSE, colReorder = list(realtime = FALSE), columnDefs = list(list(className = 'dt-center', targets = '_all'))
+    ) 
+  ) 
   
-  return(df_temp)
 })
 ###########################################
 
