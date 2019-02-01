@@ -273,7 +273,10 @@ ui <- fluidPage(
         checkboxInput(inputId = "calc_p",
                       label = "Display p-value",
                       value = FALSE),
-        p("The p-value is determined by a randomization test, calculation may take some time")
+        p("The p-value is determined by a randomization test, calculation may take some time"),
+        numericInput("digits_diff", "Digits (Difference):", 3, min = 0, max = 7),
+        numericInput("digits", "Digits (Summary):", 2, min = 0, max = 7)
+        
       )
 
     ),
@@ -1043,12 +1046,14 @@ output$coolplot <- renderPlot(width = width, height = height, {
 
 output$data_summary <- renderDataTable({
 
+#  digits <- as.numeric(input$digits)
+  
   #### Select the relevant stats and use these for a table with summary
   df_out <- NULL
   if (input$summaryInput == "mean") {
-  df_out <- df_summary() %>% select(Condition,n,mean,sd,sem,CI_lo=mean_CI_lo,CI_hi=mean_CI_hi)
+  df_out <- df_summary() %>% select(Condition,n,mean,sd,sem,CI_lo=mean_CI_lo,CI_hi=mean_CI_hi) %>% mutate_at(c(3:7), round, input$digits)
   } else if (input$summaryInput != "mean") {
-  df_out <- df_summary() %>% select(Condition,n,mean,median,IQR,MAD,CI_lo=median_CI_lo,CI_hi=median_CI_hi)
+  df_out <- df_summary() %>% select(Condition,n,mean,median,IQR,MAD,CI_lo=median_CI_lo,CI_hi=median_CI_hi) %>% mutate_at(c(3:8), round, input$digits)
   } 
 
   
@@ -1076,7 +1081,7 @@ output$data_summary <- renderDataTable({
 output$data_diffs <- renderDataTable({
   
   control_condition <- as.character(input$zero)
-  df_temp <- df_summary_diffs()
+  df_temp <- df_summary_diffs()  %>% mutate_at(c(2:4), round, input$digits_diff)
   #Remove the reference condition from the table
 #  df_temp <- df_temp %>% filter(Condition != control_condition)
 
