@@ -1,4 +1,4 @@
-##############################################################################
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # PlotsOfDifferences: Shiny app for plotting the data and DIFFERENCES (aka effect size)
 # Created by Joachim Goedhart (@joachimgoedhart), first version september 2018
 # Takes non-tidy, spreadsheet type data as input or tidy format
@@ -10,7 +10,7 @@
 # The 95%CI of the median is determined by resampling (bootstrap)
 # The differences (effect sizes) are determined from bootstrap samples of either mean or median
 # A plot and a table with stats are generated
-##############################################################################
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 # Copyright (C) 2018  Joachim Goedhart
 # electronic mail address: j #dot# goedhart #at# uva #dot# nl
 # 
@@ -26,10 +26,12 @@
 # 
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <https://www.gnu.org/licenses/>.
-##############################################################################
+# ++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
 # ToDo
 # Implement fold-change as an effect size
+
+##### Define dependencies ######
 
 library(shiny)
 library(ggplot2)
@@ -40,11 +42,12 @@ library(magrittr)
 library(ggbeeswarm)
 library(readxl)
 library(DT)
+library(RCurl)
 library(gridExtra)
 
 source("geom_flat_violin.R")
 
-################
+###### Functions ##########
 
 #Function that resamples a vector (with replacement) and calculates the median value
 boot_median = function(x) {
@@ -83,8 +86,7 @@ Tol_light <- c('#BBCC33', '#AAAA00', '#77AADD', '#EE8866', '#EEDD88', '#FFAABB',
 df_wide_example <- read.csv("Data_wide_example.csv", na.strings = "")
 df_tidy_example <- read.csv("Data_tidy_example.csv", na.strings = "")
 
- #######################################
-###### Define the User interface #########
+###### UI: User interface #########
 
 ui <- fluidPage(
   titlePanel("PlotsOfDifferences - Plots all Of the Data and Differences"),
@@ -92,9 +94,12 @@ ui <- fluidPage(
     sidebarPanel(width=3,
       conditionalPanel(
         condition = "input.tabs=='Plot'",
-        radioButtons("jitter_type", "Data offset", choices = list("Beeswarm" = "beeswarm", "Random" = "random", "None (for small n)" = "none"), selected = "beeswarm"),
-        
-        
+        radioButtons("jitter_type", "Data offset", choices = list("Quasirandom" = "quasirandom", 
+                                                                  #Uncomment for sinaplot                                           "Sinaplot" = "sina", 
+                                                                  "Random" = "random", 
+                                                                  "None; stripes" = "stripes",
+                                                                  "None (for small n)" = "none"), selected = "quasirandom"),
+
         
         sliderInput("alphaInput", "Visibility of the data", 0, 1, 0.3),
 
@@ -134,12 +139,15 @@ ui <- fluidPage(
                       label = "Remove gridlines",
                       value = FALSE),
 
-        checkboxInput(inputId = "adjust_scale",
-                      label = "Adjust scale",
-                      value = FALSE),
-        conditionalPanel(
-          condition = "input.adjust_scale == true",
-          textInput("range", "Range of values (min,max)", value = "0,2")),
+          checkboxInput(inputId = "change_scale",
+                        label = "Change scale",
+                        value = FALSE),
+          conditionalPanel(condition = "input.change_scale == true",
+                           checkboxInput(inputId = "scale_log_10",
+                                         label = "Log scale",
+                                         value = FALSE),
+                 
+                 textInput("range", "Range of values (min,max)", value = "")),
         
                 checkboxInput("color_data", "Use color for the data", value=FALSE),
         checkboxInput("color_stats", "Use color for the stats", value=FALSE),
@@ -187,81 +195,108 @@ ui <- fluidPage(
               condition = "input.adj_fnt_sz == true",
               numericInput("fnt_sz_ttl", "Size axis titles:", value = 24),
               numericInput("fnt_sz_ax", "Size axis labels:", value = 18)),
-        conditionalPanel(
-          condition = "input.color_data == true || input.color_stats == true",
-          checkboxInput(inputId = "add_legend",
-                        label = "Add legend",
-                        value = FALSE))
-      ),
-      conditionalPanel(
-        condition = "input.tabs=='Data upload'",
-        h4("Data upload"),
-        radioButtons(
-          "data_input", "",
-          choices = 
-            list("Example 1 (wide format)" = 1,
-                 "Example 2 (tidy format)" = 2,
-                 "Upload file" = 3,
-                 "Paste data" = 4)
-          ,
-          selected =  1),
-        conditionalPanel(
-          condition = "input.data_input=='1'"
-          
-        ),
-        conditionalPanel(
-          condition = "input.data_input=='3'",
-          h5("Upload file: "),
-          fileInput("upload", "", multiple = FALSE),
-          selectInput("file_type", "Type of file:",
-                      list("text (csv)" = "text",
-                           "Excel" = "Excel"
-                      ),
-                      selected = "text"),
-          conditionalPanel(
-            condition = "input.file_type=='text'",
-
-          radioButtons(
-              "upload_delim", "Delimiter",
-              choices = 
-                list("Comma" = ",",
-                     "Tab" = "\t",
-                     "Semicolon" = ";",
-                     "Space" = " "),
-              selected = ",")),
-          
-          actionButton("submit_datafile_button",
-                       "Submit datafile")),
-        conditionalPanel(
-          condition = "input.data_input=='4'",
-          h5("Paste data below:"),
-          tags$textarea(id = "data_paste",
-                        placeholder = "Add data here",
-                        rows = 10,
-                        cols = 20, ""),
-          actionButton("submit_data_button", "Submit data"),
-              radioButtons(
-                "text_delim", "Delimiter",
-                choices = 
-                    list("Tab (from Excel)" = "\t",
-                         "Space" = " ",
-                         "Comma" = ",",
-                         "Semicolon" = ";"),
-                          selected = "\t")),
-        checkboxInput(inputId = "tidyInput",
-                      label = "These data are Tidy",
+        checkboxInput(inputId = "add_description",
+                      label = "Add figure description",
                       value = FALSE),
-        conditionalPanel(
-          condition = "input.tidyInput==true",
-          h5("",
-             a("Click here for more info on tidy data",
-               href = "http://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/")),
-          selectInput("x_var", "Conditions to compare:", choices = ""),
-          selectInput("y_var", "Variables:", choices = "")
-          
-          )
-      ),
+        NULL      ),
+conditionalPanel(
+  condition = "input.tabs=='Data upload'",
+  h4("Data upload"),
+  radioButtons(
+    "data_input", "",
+    choices = 
+      list("Example 1 (wide format)" = 1,
+           "Example 2 (tidy format)" = 2,
+           "Upload file" = 3,
+           "Paste data" = 4,
+           "URL (csv files only)" = 5
+      )
+    ,
+    selected =  1),
+  conditionalPanel(
+    condition = "input.data_input=='1'"
+    
+  ),
+  conditionalPanel(
+    condition = "input.data_input=='3'",
+    h5("Upload file: "),
+    fileInput("upload", "", multiple = FALSE),
+    selectInput("file_type", "Type of file:",
+                list("text (csv)" = "text",
+                     "Excel" = "Excel"
+                ),
+                selected = "text"),
+    conditionalPanel(
+      condition = "input.file_type=='text'",
       
+      radioButtons(
+        "upload_delim", "Delimiter",
+        choices = 
+          list("Comma" = ",",
+               "Tab" = "\t",
+               "Semicolon" = ";",
+               "Space" = " "),
+        selected = ",")),
+    
+    actionButton("submit_datafile_button",
+                 "Submit datafile")),
+  conditionalPanel(
+    condition = "input.data_input=='4'",
+    h5("Paste data below:"),
+    tags$textarea(id = "data_paste",
+                  placeholder = "Add data here",
+                  rows = 10,
+                  cols = 20, ""),
+    actionButton("submit_data_button", "Submit data"),
+    radioButtons(
+      "text_delim", "Delimiter",
+      choices = 
+        list("Tab (from Excel)" = "\t",
+             "Space" = " ",
+             "Comma" = ",",
+             "Semicolon" = ";"),
+      selected = "\t")),
+  
+  ### csv via URL as input      
+  conditionalPanel(
+    condition = "input.data_input=='5'",
+    #         textInput("URL", "URL", value = "https://zenodo.org/record/2545922/files/FRET-efficiency_mTq2.csv"), 
+    textInput("URL", "URL", value = ""), 
+    NULL
+  ),
+  
+  checkboxInput(inputId = "tidyInput",
+                label = "These data are Tidy",
+                value = FALSE),
+  
+  conditionalPanel(
+    condition = "input.tidyInput==false", selectInput("data_remove", "Select columns to remove", "", multiple = TRUE)),
+  
+  conditionalPanel(
+    condition = "input.tidyInput==true",
+    
+    selectInput("x_var", "Conditions to compare:", choices = ""),
+    selectInput("y_var", "Variables:", choices = ""),
+    #         selectInput("h_facet", "Separate horizontal:", choices = ""),
+    #         selectInput("v_facet", "Separate vertical:", choices = ""),
+    
+    NULL
+  ), 
+  
+  conditionalPanel(
+    condition = "input.tidyInput==false", (downloadButton("downloadData", "Download in tidy format (csv)"))),
+    hr(),
+    checkboxInput(inputId = "info_data",
+                label = "Show information on data formats",
+                value = FALSE),
+  
+  conditionalPanel(
+    condition = "input.info_data==true",
+    img(src = 'Data_format.png', width = '100%'), h5(""), a("Background info for converting wide data to tidy format", href = "http://thenode.biologists.com/converting-excellent-spreadsheets-tidy-data/education/")
+    )
+  
+    ),
+
       conditionalPanel(
         condition = "input.tabs=='About'",
         h4("About")    
@@ -275,7 +310,12 @@ ui <- fluidPage(
                       value = FALSE),
         p("The p-value is determined by a randomization test, calculation may take some time"),
         numericInput("digits_diff", "Digits (Difference):", 3, min = 0, max = 7),
-        numericInput("digits", "Digits (Summary):", 2, min = 0, max = 7)
+        numericInput("digits", "Digits (Summary):", 2, min = 0, max = 7),
+        checkboxGroupInput("stats_select", label = h5("Statistics for table:"), 
+                           choices = list("mean", "sd", "sem","95CI mean", "median", "MAD", "IQR", "Q1", "Q3", "95CI median"),
+                           selected = "sem"),
+        actionButton('select_all1','select all'),
+        actionButton('deselect_all1','deselect all')
         
       )
 
@@ -284,7 +324,17 @@ ui <- fluidPage(
  
        tabsetPanel(id="tabs",
                   tabPanel("Data upload", h4("Data as provided"), dataTableOutput("data_uploaded")),
-                  tabPanel("Plot", downloadButton("downloadPlotPDF", "Download pdf-file"), downloadButton("downloadPlotPNG", "Download png-file"), div(`data-spy`="affix", `data-offset-top`="10", plotOutput("coolplot"))
+                  tabPanel("Plot", downloadButton("downloadPlotPDF", "Download pdf-file"),
+ #                          downloadButton("downloadPlotSVG", "Download svg-file"),
+                           downloadButton("downloadPlotPNG", "Download png-file"),
+                           actionButton("settings_copy", icon = icon("clone"),
+                                        label = "Clone current setting"),
+                           actionButton("legend_copy", icon = icon("clone"),
+                                        label = "Copy Legend"),
+                           
+                          div(`data-spy`="affix", `data-offset-top`="10", plotOutput("coolplot"),
+                              htmlOutput("LegendText", width="200px", inline =FALSE),
+                              NULL)
                   ), 
                   tabPanel("Summary",
                            conditionalPanel(
@@ -306,18 +356,18 @@ ui <- fluidPage(
   )         
 )
 
- #######################################
+########## SERVER ########
 
 server <- function(input, output, session) {
 
-  #####################################
   ###### DATA INPUT ###################
-
+  
   df_upload <- reactive({
+    
     if (input$data_input == 1) {
       data <- df_wide_example
     }  else if (input$data_input == 2) {
-        data <- df_tidy_example 
+      data <- df_tidy_example 
     } else if (input$data_input == 3) {
       file_in <- input$upload
       # Avoid error message while file is not uploaded yet
@@ -336,6 +386,17 @@ server <- function(input, output, session) {
           } 
         })
       }
+    } else if (input$data_input == 5) {
+      
+      #Read data from a URL
+      #This requires RCurl
+      if(input$URL == "") {
+        return(data.frame(x = "Enter a full HTML address, for example: https://zenodo.org/record/2545922/files/FRET-efficiency_mTq2.csv"))
+      } else if (url.exists(input$URL) == FALSE) {
+        return(data.frame(x = paste("Not a valid URL: ",input$URL)))
+      } else {data <- read_csv(input$URL)}
+      
+      #Read the data from textbox
     } else if (input$data_input == 4) {
       if (input$data_paste == "") {
         data <- data.frame(x = "Copy your data into the textbox,
@@ -353,12 +414,22 @@ server <- function(input, output, session) {
         }
       }
   }
+    updateSelectInput(session, "data_remove", choices = names(data))
     return(data)
 })
-
- #####################################
   
- ####################################
+  
+  ##### REMOVE SELECTED COLUMNS #########
+  df_filtered <- reactive({     
+    
+    if (!is.null(input$data_remove)) {
+      columns = input$data_remove
+      df <- df_upload() %>% select(-one_of(columns))
+    } else if (is.null(input$data_remove)) {
+      df <- df_upload()}
+    
+  })
+  
 ##### CONVERT TO TIDY DATA ##########
   
 #Need to tidy the data?!
@@ -367,17 +438,14 @@ server <- function(input, output, session) {
 #Tidy data will be used as supplied
 df_upload_tidy <- reactive({
     if(input$tidyInput == FALSE ) {
-      klaas <- gather(df_upload(), Condition, Value)
+      klaas <- df_filtered() %>% gather(Condition, Value)
     }
     else if(input$tidyInput == TRUE ) {
       klaas <- df_upload()
     }
   return(klaas)
 })
- ###################################
 
-
- #############################################################################
 ##### Get the Variables (necessary for tidy data with multiple variables) ##############
 
 observe({ 
@@ -394,10 +462,234 @@ observe({
         updateSelectInput(session, "zero", choices = conditions_list)
         
         })
- ###################################    
 
- ###########################################################  
-######## Determine and set the order of the Conditions #######  
+
+########### GET INPUT VARIABLEs FROM HTML ##############
+
+observe({
+  
+  ############ ?data ################
+  
+  query <- parseQueryString(session$clientData$url_search)
+  if (!is.null(query[['data']])) {
+    presets_data <- query[['data']]
+    presets_data <- unlist(strsplit(presets_data,";"))
+    observe(print((presets_data)))
+    
+    updateRadioButtons(session, "data_input", selected = presets_data[1])    
+    updateCheckboxInput(session, "tidyInput", value = presets_data[2])
+    
+    #To Implement:
+    #presets_data[3], x_var
+    #presets_data[4], y_var
+    #presets_data[5], h_facet
+    #presets_data[6], v_facet
+  }
+  
+  ############ ?vis ################
+  
+  if (!is.null(query[['vis']])) {
+    
+    presets_vis <- query[['vis']]
+    presets_vis <- unlist(strsplit(presets_vis,";"))
+    observe(print((presets_vis)))
+    
+    #radio, slider, radio, check, slider
+    updateRadioButtons(session, "jitter_type", selected = presets_vis[1])
+    updateSliderInput(session, "alphaInput", value = presets_vis[2])
+    updateRadioButtons(session, "summaryInput", selected = presets_vis[3])
+    updateCheckboxInput(session, "add_CI", value = presets_vis[4])
+    updateSliderInput(session, "alphaInput_summ", value = presets_vis[5])
+    updateRadioButtons(session, "ordered", selected = presets_vis[6])
+    #  updateTabsetPanel(session, "tabs", selected = "Plot")
+  }
+  
+  ############ ?layout ################
+  
+  if (!is.null(query[['layout']])) {
+    
+    presets_layout <- query[['layout']]
+    presets_layout <- unlist(strsplit(presets_layout,";"))
+    observe(print((presets_layout)))
+    
+    updateCheckboxInput(session, "rotate_plot", value = presets_layout[1])
+    updateCheckboxInput(session, "no_grid", value = (presets_layout[2]))
+    
+    updateCheckboxInput(session, "change_scale", value = presets_layout[3])
+    updateCheckboxInput(session, "scale_log_10", value = presets_layout[4])
+    updateTextInput(session, "range", value= presets_layout[5])
+    updateCheckboxInput(session, "color_data", value = presets_layout[6])
+    updateCheckboxInput(session, "color_stats", value = presets_layout[7])
+    updateRadioButtons(session, "adjustcolors", selected = presets_layout[8])    
+    updateCheckboxInput(session, "add_description", value = presets_layout[9])
+    if (length(presets_layout)>10) {
+      updateNumericInput(session, "plot_height", value= presets_layout[10])
+      updateNumericInput(session, "plot_width", value= presets_layout[11])
+    }
+    #  updateTabsetPanel(session, "tabs", selected = "Plot")
+  }
+  
+  ############ ?color ################
+  
+  if (!is.null(query[['color']])) {
+    
+    presets_color <- query[['color']]
+    presets_color <- unlist(strsplit(presets_color,";"))
+    
+    updateSelectInput(session, "colour_list", selected = presets_color[1])
+    updateTextInput(session, "user_color_list", value= presets_color[2])
+  }
+  
+  ############ ?label ################
+  
+  if (!is.null(query[['label']])) {
+    
+    presets_label <- query[['label']]
+    presets_label <- unlist(strsplit(presets_label,";"))
+    observe(print((presets_label)))
+    
+    
+    updateCheckboxInput(session, "add_title", value = presets_label[1])
+    updateTextInput(session, "title", value= presets_label[2])
+    
+    updateCheckboxInput(session, "label_axes", value = presets_label[3])
+    updateTextInput(session, "lab_x", value= presets_label[4])
+    updateTextInput(session, "lab_y", value= presets_label[5])
+    
+    updateCheckboxInput(session, "adj_fnt_sz", value = presets_label[6])
+    updateNumericInput(session, "fnt_sz_ttl", value= presets_label[7])
+    updateNumericInput(session, "fnt_sz_ax", value= presets_label[8])
+    updateCheckboxInput(session, "add_description", value = presets_label[9])
+  }
+  
+  ############ ?url ################
+  
+  if (!is.null(query[['url']])) {
+    updateRadioButtons(session, "data_input", selected = 5)  
+    updateTextInput(session, "URL", value= query[['url']])
+    observe(print((query[['url']])))
+    updateTabsetPanel(session, "tabs", selected = "Plot")
+  }
+})
+
+########### RENDER URL ##############
+
+output$HTMLpreset <- renderText({
+  url()
+})
+
+######### GENERATE URL with the settings #########
+
+url <- reactive({
+  
+  base_URL <- paste(sep = "", session$clientData$url_protocol, "//",session$clientData$url_hostname, ":",session$clientData$url_port, session$clientData$url_pathname)
+  
+  data <- c(input$data_input, input$tidyInput, input$x_var, input$y_var, input$h_facet, input$v_facet)
+  
+  vis <- c(input$jitter_type, input$alphaInput, input$summaryInput, input$add_CI, input$alphaInput_summ, input$ordered)
+  layout <- c(input$rotate_plot, input$no_grid, input$change_scale, input$scale_log_10, input$range, input$color_data, input$color_stats,
+              input$adjustcolors, input$add_description, input$plot_height, input$plot_width)
+  
+  #Hide the standard list of colors if it is'nt used
+  if (input$adjustcolors != "5") {
+    color <- c(input$colour_list, "none")
+  } else if (input$adjustcolors == "5") {
+    color <- c(input$colour_list, input$user_color_list)
+  }
+  
+  label <- c(input$add_title, input$title, input$label_axes, input$lab_x, input$lab_y, input$adj_fnt_sz)
+  
+  #replace FALSE by "" and convert to string with ; as seperator
+  data <- sub("FALSE", "", data)
+  data <- paste(data, collapse=";")
+  data <- paste0("data=", data) 
+  
+  vis <- sub("FALSE", "", vis)
+  vis <- paste(vis, collapse=";")
+  vis <- paste0("vis=", vis) 
+  
+  layout <- sub("FALSE", "", layout)
+  layout <- paste(layout, collapse=";")
+  layout <- paste0("layout=", layout) 
+  
+  color <- sub("FALSE", "", color)
+  color <- paste(color, collapse=";")
+  color <- paste0("color=", color) 
+  
+  label <- sub("FALSE", "", label)
+  label <- paste(label, collapse=";")
+  label <- paste0("label=", label) 
+  
+  if (input$data_input == "5") {url <- paste("url=",input$URL,sep="")} else {url <- NULL}
+  
+  parameters <- paste(data, vis,layout,color,label,url, sep="&")
+  
+  preset_URL <- paste(base_URL, parameters, sep="?")
+  
+  observe(print(parameters))
+  observe(print(preset_URL))  
+  return(preset_URL)
+})
+
+############# Pop-up that displays the URL to 'clone' the current settings ################
+
+observeEvent(input$settings_copy , {
+  showModal(urlModal(url=url(), title = "Use the URL to launch PlotsOfData with the current setting"))
+})
+
+observeEvent(input$legend_copy , {
+  showModal(urlModal(url=Fig_legend(), title = "Legend text"))
+})
+
+############# Pop-up appears when a boxplot or violinplot is selected when n<10 ###########
+
+observeEvent(input$summaryInput , {
+  df_temp <- df_summary_mean()
+  min_n <- min(df_temp$n)
+  if (input$summaryInput == "box" && min_n<10) {
+    showModal(modalDialog(
+      title = NULL,
+      "You have selected a boxplot as summary, but one of the conditions has less than 10 datapoints - For n<10 the boxplot is not a suitable summary", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
+    ))
+  } else if (input$summaryInput == "violin" && min_n<10) {
+    showModal(modalDialog(
+      title = NULL,
+      "You have selected a violinplot as summary, but one of the conditions has less than 10 datapoints - For n<10 the violinplot is not a suitable summary", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
+    ))
+  }
+})
+
+############# Pop-up appears when the 95%CI is selected when n<10 ###########
+
+observeEvent(input$add_CI , {
+  df_temp <- df_summary_mean()
+  min_n <- min(df_temp$n)
+  
+  if (input$add_CI == TRUE && min_n<10) {
+    showModal(modalDialog(
+      title = NULL,
+      "Confidence Intervals are used to make inferences, but one of the conditions has less than 10 datapoints - It is not recommended to show inferential statistics (CI, sem) for n<10", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
+    ))
+  }  
+})
+
+############# Pop-up appears when n<10 ###########
+
+observeEvent(input$tabs=="Plot" , {
+  df_temp <- df_summary_mean()
+  min_n <- min(df_temp$n)
+
+  if (input$show_diffs == TRUE && min_n<10) {
+    showModal(modalDialog(
+      title = NULL,
+      "One of the conditions has less than 10 datapoints - calculating the effect size based on bootsrapping is not recommended", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
+    ))
+    updateCheckboxInput(session, "show_diffs", value = FALSE)
+
+  }
+})
+
+######## ORDER the Conditions ####### 
 df_sorted <- reactive({
   
 #  klaas <- df_upload_tidy()
@@ -417,10 +709,7 @@ klaas <-  df_selected()
   
 })
 
-########################################################### 
 
-
- ###################################################################################
 ######## Make a new dataframe with selected variables for display & summary stats #######  
 
 df_selected <- reactive({
@@ -437,58 +726,55 @@ df_selected <- reactive({
 
     return(koos)
 })
- ###########################################################  
 
+#### DISPLAY UPLOADED DATA (as provided) ##################
+
+output$data_uploaded <- renderDataTable(
   
- #############################################################
-#### DISPLAY UPLOADED DATA (exactly as provided) ##################
-    
-output$data_uploaded <- renderDataTable({
-#    observe({ print(input$tidyInput) })
-      df_upload()
-  })
- #############################################################
+  #    observe({ print(input$tidyInput) })
+  df_filtered(),
+  rownames = FALSE,
+  options = list(pageLength = 100, autoWidth = FALSE,
+                 lengthMenu = c(10, 100, 1000, 10000)),
+  editable = FALSE,selection = 'none'
+)
 
+########### Caluclate stats for the MEAN ############
 
- ##################################################
-#### Caluclate Summary of the DATA for the MEAN ####
+df_summary_mean <- reactive({
 
-df_summary <- reactive({
-  klaas <- df_bootstrap_stats()
   koos <- df_selected() %>%
     group_by(Condition) %>% 
     summarise(n = n(),
             mean = mean(Value),
-            median = median(Value),
             sd = sd(Value)) %>%
   mutate(sem = sd / sqrt(n - 1),
          mean_CI_lo = mean + qt((1-Confidence_level)/2, n - 1) * sem,
          mean_CI_hi = mean - qt((1-Confidence_level)/2, n - 1) * sem)
   
+  return(koos)
+})
   
-  if (input$summaryInput != "mean") {
-  kees  <- df_selected() %>%
+  ############ Caluclate stats for the MEDIAN ##########
+  
+  df_summary_median <- reactive({
+    
+    klaas <- df_bootstrap_stats()
+    kees  <- df_selected() %>%
     group_by(Condition) %>% 
     summarise(
-              IQR = IQR(Value),
-              MAD = mad(Value, constant=1))
+            median= median(Value, na.rm = TRUE),
+            MAD= mad(Value, na.rm = TRUE, constant=1),
+            IQR= IQR(Value, na.rm = TRUE),
+            Q1=quantile(Value, probs=0.25),
+            Q3=quantile(Value, probs=0.75))
 
-  kees$median_CI_lo <- tapply(klaas$resampled_median, klaas$Condition, quantile, probs=lower_percentile)
-  kees$median_CI_hi <- tapply(klaas$resampled_median, klaas$Condition, quantile, probs=upper_percentile)
-  koos <- left_join(koos,kees, by="Condition")
+      kees$median_CI_lo <- tapply(klaas$resampled_median, klaas$Condition, quantile, probs=lower_percentile)
+      kees$median_CI_hi <- tapply(klaas$resampled_median, klaas$Condition, quantile, probs=upper_percentile)
   
-  }
-  
-  #Prints a table with stats in the Console
-  observe({ print(koos) })
-
-  return(koos)
+  return(kees)
   })
 
- #################################################
-
-
- #########################################################
 #### Caluclate boostrap samples for the Median and Mean ####
 
 df_bootstrap_stats <- reactive({
@@ -512,8 +798,6 @@ df_bootstrap_stats <- reactive({
   
 })
 
-
-####################################################
 #### Calculate the differences ####
 
 df_diffs <- reactive({
@@ -562,7 +846,6 @@ df_summary_diffs <- reactive({
   return(df_diff_summary)
 })
 
- ####################################################
 ####### Calculate the p-value by randomization #######
 
 df_p <- reactive({
@@ -645,10 +928,6 @@ df_p <- reactive({
   return(def_p)
 })
 
- ####################################################
-
-
- ###########################################
 ######### DEFINE DOWNLOAD BUTTONS ###########
 
 ##### Set width and height of the plot area
@@ -687,6 +966,30 @@ output$downloadPlotPDF <- downloadHandler(
   contentType = "application/pdf" # MIME type of the image
 )
 
+# output$downloadPlotSVG <- downloadHandler(
+#   filename <- function() {
+#     paste("PlotsOfDiffs_", Sys.time(), ".svg", sep = "")
+#   },
+#   content <- function(file) {
+#     
+#     plotlist <- list(plot_data(), plot_diffs())
+#     to_keep <- !sapply(plotlist,is.null)
+#     plotlist <- plotlist[to_keep] 
+#     if (input$rotate_plot == TRUE) {
+#       svg(file, width = input$plot_width/72, height = input$plot_height/72*2)
+#       grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
+#     } else if (input$rotate_plot == FALSE) {
+#       svg(file, width = input$plot_width/72*2, height = input$plot_height/72)
+#       grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
+#     }
+#     
+#     dev.off()
+#   },
+#   contentType = "application/svg" # MIME type of the image
+# )
+
+
+
 output$downloadPlotPNG <- downloadHandler(
   filename <- function() {
     paste("PlotsOfDiffs_", Sys.time(), ".png", sep = "")
@@ -711,25 +1014,22 @@ output$downloadPlotPNG <- downloadHandler(
   contentType = "application/png" # MIME type of the image
 )
 
-
- ###########################################
-
-
- ###########################################
 ######## PREPARE PLOT FOR DISPLAY ##########
- ###########################################
 
 plot_data <-  reactive ({
 
   
-####### Read the order from the ordered dataframe #############  
-    koos <- df_sorted()
-    custom_order <-  levels(factor(koos$Condition))
-    
-#    observe({ print(custom_order) })
-
-    
-
+  ####### Read the order from the ordered dataframe #############  
+  koos <- df_sorted()
+  
+  #   observe({ print(koos) })
+  
+  custom_order <-  levels(factor(koos$Condition))
+  #    custom_labels <- levels(factor(koos$label))
+  
+  observe({ print(custom_order) })
+  #   observe({ print(custom_labels) })    
+  width_column <- 0.7
   
   
   ########## Define alternative color palettes ##########
@@ -790,11 +1090,15 @@ plot_data <-  reactive ({
   }  
     
   
-########## Define minimal n - only plot box/violinplots for min_n>9
-    df_temp <- df_summary()
-    min_n <- min(df_temp$n)
+  # Define minimal n - only plot box/violinplots for min_n>9
+  df_temp <- df_summary_mean()
+  min_n <- min(df_temp$n)
+  
+  ######## Change appearance of plot width under for non-jittered points or segments when n is low #########
+  if (input$jitter_type == "none") {width_column <- width_column/2}
+  #    if (input$jitter_type == "stripes" && min_n <10) {width_column <- width_column/2}
+  
 
- ###############################################
 ############## GENERATE PLOT LAYERS #############
 
     p <- ggplot(data=df_selected(), aes_string(x="Condition")) 
@@ -809,51 +1113,64 @@ plot_data <-  reactive ({
     } else if (input$summaryInput == "violin" && min_n>9) {
       p <- p + geom_violin(data=df_upload_tidy(), aes_string(x=x_choice, y=y_choice, fill=kleur_stats),scale = "width", draw_quantiles = c(0.5), width=0.8, size=0.5, alpha=input$alphaInput_summ) 
       if (input$add_CI == TRUE) {
-        p <- p + geom_linerange(data=df_summary(), aes_string(x="Condition", ymin = "median_CI_lo", ymax = "median_CI_hi"), colour="black", size =3,alpha=input$alphaInput_summ)
+        p <- p + geom_linerange(data=df_summary_median(), aes_string(x="Condition", ymin = "median_CI_lo", ymax = "median_CI_hi"), colour="black", size =3,alpha=input$alphaInput_summ)
        
       }
     }
 
-   #### plot individual measurements (middle layer) ####
-    if (input$jitter_type == "beeswarm") {
-      p <- p + geom_quasirandom(data=df_upload_tidy(), aes_string(x=x_choice, y=y_choice, colour = kleur), varwidth = TRUE, cex=3, alpha=input$alphaInput)
+    #### plot individual measurements (middle layer) ####
+    if (input$jitter_type == "quasirandom") {
+      p <- p + geom_quasirandom(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), shape = 16, varwidth = TRUE, cex=3.5, alpha=input$alphaInput)
+      
+      #Uncomment for sinaplot    } else if (input$jitter_type == "sina") {
+      #Uncomment for sinaplot p <- p + geom_sina(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), method="density", maxwidth = .8, cex=3, alpha=input$alphaInput)
     } else if (input$jitter_type == "random") {
-      p <- p + geom_jitter(data=df_upload_tidy(), aes_string(x=x_choice, y=y_choice, colour = kleur), width=0.3, height=0.0, cex=3, alpha=input$alphaInput)
+      p <- p + geom_jitter(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), shape = 16, width=0.3, height=0.0, cex=3.5, alpha=input$alphaInput)
+    } else if (input$jitter_type == "stripes") {
+      p <- p + geom_segment(data=df_sorted(), aes(x=match(Condition, levels(Condition))-((width_column/2)-0.1), xend=match(Condition, levels(Condition))+((width_column/2)-0.1), y=Value, yend=Value), size=1, color="black", alpha=input$alphaInput)
     } else if (input$jitter_type == "none") {
-      p <- p + geom_jitter(data=df_upload_tidy(), aes_string(x=x_choice, y=y_choice, colour = kleur), width=0, height=0.0, cex=3, alpha=input$alphaInput)
+      p <- p + geom_jitter(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), shape = 16, width=0, height=0.0, cex=3.5, alpha=input$alphaInput)
     }
     
   ##### plot selected data summary (top layer) ####
     if (input$summaryInput == "median"  && input$add_CI == TRUE && min_n>9) {
-    p <-  p + geom_point(data=df_summary(), aes_string(x="Condition", y = "median", colour=kleur_stats), shape = 21,fill=NA,size = 8,alpha=input$alphaInput_summ)+
-              geom_linerange(data=df_summary(), aes_string(x="Condition", ymin = "median_CI_lo", ymax = "median_CI_hi", colour=kleur_stats), size =3,alpha=input$alphaInput_summ)
+    p <-  p + geom_point(data=df_summary_median(), aes_string(x="Condition", y = "median", colour=kleur_stats), shape = 21,fill=NA,size = 8,alpha=input$alphaInput_summ)+
+              geom_linerange(data=df_summary_median(), aes_string(x="Condition", ymin = "median_CI_lo", ymax = "median_CI_hi", colour=kleur_stats), size =3,alpha=input$alphaInput_summ)
     }
 
     else if (input$summaryInput == "median"  && input$add_CI == FALSE || min_n<10) {
-      p <-  p + geom_errorbar(data=df_summary(), aes_string(x="Condition", ymin="median", ymax="median", colour = kleur_stats), width=.8, size=2, alpha=input$alphaInput_summ)
+      p <-  p + geom_errorbar(data=df_summary_median(), aes_string(x="Condition", ymin="median", ymax="median", colour = kleur_stats), width=.8, size=2, alpha=input$alphaInput_summ)
 
     } else if (input$summaryInput == "mean"  && input$add_CI == TRUE && min_n>9) {
-      p <- p + geom_linerange(data=df_summary(), aes_string(x="Condition", ymin = "mean_CI_lo", ymax = "mean_CI_hi", colour=kleur_stats), size =3,alpha=input$alphaInput_summ)+
-        geom_point(data=df_summary(), aes_string(x="Condition", y = "mean", colour=kleur_stats), shape = 21,fill=NA,size = 8,alpha=input$alphaInput_summ)
+      p <- p + geom_linerange(data=df_summary_mean(), aes_string(x="Condition", ymin = "mean_CI_lo", ymax = "mean_CI_hi", colour=kleur_stats), size =3,alpha=input$alphaInput_summ)+
+        geom_point(data=df_summary_mean(), aes_string(x="Condition", y = "mean", colour=kleur_stats), shape = 21,fill=NA,size = 8,alpha=input$alphaInput_summ)
 
     } else if (input$summaryInput == "mean"  && input$add_CI == FALSE || min_n<10) {
-      p <- p + geom_errorbar(data=df_summary(), aes_string(x="Condition", ymin="mean", ymax="mean", colour=kleur_stats), width=.8, size=2, alpha=input$alphaInput_summ)
+      p <- p + geom_errorbar(data=df_summary_mean(), aes_string(x="Condition", ymin="mean", ymax="mean", colour=kleur_stats), width=.8, size=2, alpha=input$alphaInput_summ)
     }  
 
 ########### Do some formatting of the lay-out
 
      p <- p+ theme_light(base_size = 16)
     
-     #### If selected, rotate plot 90 degrees CW ####
-     rng <- as.numeric(strsplit(input$range,",")[[1]])
+     # if log-scale checked specified
+     if (input$scale_log_10)
+       p <- p + scale_y_log10() 
      
-     # if the range of values is specified    
-     if (input$adjust_scale == TRUE) { 
-       p <- p + coord_cartesian(ylim=c(rng[1],rng[2]))
-     } else if (input$adjust_scale == FALSE)
-     {
+     #Adjust scale if range (min,max) is specified
+     if (input$range != "" &&  input$change_scale == TRUE) {
+       rng <- as.numeric(strsplit(input$range,",")[[1]])
+       
+       #If min>max invert the axis
+       if (rng[1]>rng[2]) {p <- p+ scale_y_reverse()}
+       
+       #Autoscale if rangeis NOT specified
+     } else if (input$range == "" || input$change_scale == FALSE) {
        rng <- c(NULL,NULL)
      }
+     
+     p <- p + coord_cartesian(ylim=c(rng[1],rng[2]))
+     #### If selected, rotate plot 90 degrees CW ####
      if (input$rotate_plot == FALSE) { p <- p + coord_flip(ylim=c(rng[1],rng[2]))}
      
     # if title specified
@@ -870,10 +1187,10 @@ plot_data <-  reactive ({
       p <- p + theme(axis.title = element_text(size=input$fnt_sz_ttl))
     }
      
-    #remove legend (if selected)
-    if (input$add_legend == FALSE) {  
-      p <- p + theme(legend.position="none")
-    }
+     #remove legend (if selected)
+     if (input$add_description == FALSE) {
+       p <- p + theme(legend.position="none")
+     }
 
      #remove gridlines (if selected)
      if (input$no_grid == TRUE) {  
@@ -892,7 +1209,6 @@ plot_data <-  reactive ({
     
   }) 
 
-###########################################
 ######## PREPARE Differences PLOT FOR DISPLAY ##########
 
 
@@ -903,14 +1219,14 @@ plot_diffs <- reactive ({
   
   
   ########## Define minimal n - only 95% CI for min_n>9
-  df_temp <- df_summary()
+  df_temp <- df_summary_mean()
   min_n <- min(df_temp$n)
 
-  ####### Read the order from the ordered dataframe #############  
+  ####### Read the order from the ordered dataframe
   koos <- df_sorted()
   custom_order <-  levels(factor(koos$Condition))
   
-  ########## Define alternative color palettes ##########
+  ########## Define alternative color palettes
   
   newColors <- NULL
   
@@ -955,7 +1271,7 @@ plot_diffs <- reactive ({
     kleur <- x_choice
   }
   
-  ########## Define if/how color is used for the stats ############
+  ########## Define if/how color is used for the stats
   #    observe({ print(class(input$colour_list)) })
   if (input$color_stats == FALSE) {
     kleur_stats <- NULL
@@ -1005,7 +1321,7 @@ plot_diffs <- reactive ({
   }
   
   #remove legend (if selected)
-  if (input$add_legend == FALSE) {  
+  if (input$add_description == FALSE) {  
     p2 <- p2 + theme(legend.position="none")
   }
   
@@ -1024,9 +1340,9 @@ plot_diffs <- reactive ({
   
 })
 
-###########################################
+############### RenderPLOT #########
 output$coolplot <- renderPlot(width = width, height = height, {     
-  ### Output the plot ######
+
   plotlist <- list(plot_data(), plot_diffs())
   to_keep <- !sapply(plotlist,is.null)
   plotlist <- plotlist[to_keep]
@@ -1040,43 +1356,98 @@ output$coolplot <- renderPlot(width = width, height = height, {
 }) #close output$coolplot
 
 
+#### Export the data in tidy format ###########
 
-###########################################
+output$downloadData <- downloadHandler(
+  filename = function() {
+    paste("PlotsOfDiffs_Tidy", ".csv", sep = "")
+  },
+  content = function(file) {
+    write.csv(df_selected(), file, row.names = FALSE)
+  }
+)
+
+
+
+
+#### Combine the statistics in one table and filter ###########
+
+df_filtered_stats <- reactive({
+  
+  digits <- as.numeric(input$digits)
+  
+  #Combine the numbers from the 95% CI for the mean to show the interval
+  klaas <- df_summary_mean() %>% mutate(mean_CI_lo = round(mean_CI_lo, digits), mean_CI_hi = round(mean_CI_hi, digits)) %>% unite("95CI mean", c("mean_CI_lo","mean_CI_hi"), sep=" - ")
+  observe({ print((klaas)) }) 
+  
+  #Combine the numbers from the 95% CI for the median to show the interval
+  koos <- df_summary_median() %>% mutate(median_CI_lo = round(median_CI_lo, digits), median_CI_hi = round(median_CI_hi, digits)) %>% unite("95CI median", c("median_CI_lo","median_CI_hi"), sep=" - ")
+  
+  klaas  <- full_join(klaas, koos,by="Condition")
+  
+  # Round down to the number of selected digits
+  klaas <- klaas %>% mutate_at(c(3:5, 7:11), round, input$digits)
+  
+  ##### Show the statistics selected by the user ############  
+  
+  if (!is.null(input$stats_select)) {
+    columns = input$stats_select
+    columns <- c("Condition", "n", columns)
+    df <- klaas %>% select(one_of(columns))
+  } else if (is.null(input$stats_select)) {
+    df <- klaas %>% select("Condition", "n")}
+})
+
+
+
+
+
+#### A predined selection of stats for the table  ###########
+
+observeEvent(input$summaryInput, {
+  if (input$summaryInput=="mean")  {
+    updateSelectInput(session, "stats_select", selected = list("mean", "sd", "95CI mean"))
+  }
+  else if (input$summaryInput=="median")  {
+    updateSelectInput(session, "stats_select", selected = list("median", "MAD", "95CI median"))
+  }
+  else if (input$summaryInput=="box")  {
+    updateSelectInput(session, "stats_select", selected = list("median", "IQR", "95CI median"))
+  }
+  else if (input$summaryInput=="violin")  {
+    updateSelectInput(session, "stats_select", selected = list("median", "95CI median"))
+  }
+  
+})
+
+observeEvent(input$select_all1, {
+  updateSelectInput(session, "stats_select", selected = list("mean", "sd", "sem", "95CI mean","median", "MAD", "IQR", "Q1", "Q3", "95CI median"))
+})
+
+observeEvent(input$deselect_all1, {
+  updateSelectInput(session, "stats_select", selected = "")
+})
+
+
 #### Render the data summary as a table ###########
 
-output$data_summary <- renderDataTable({
-
-#  digits <- as.numeric(input$digits)
-  
-  #### Select the relevant stats and use these for a table with summary
-  df_out <- NULL
-  if (input$summaryInput == "mean") {
-  df_out <- df_summary() %>% select(Condition,n,mean,sd,sem,CI_lo=mean_CI_lo,CI_hi=mean_CI_hi) %>% mutate_at(c(3:7), round, input$digits)
-  } else if (input$summaryInput != "mean") {
-  df_out <- df_summary() %>% select(Condition,n,mean,median,IQR,MAD,CI_lo=median_CI_lo,CI_hi=median_CI_hi) %>% mutate_at(c(3:8), round, input$digits)
-  } 
-
-  
-  
-#Add dowloadbuttons and allow reordering  
+output$data_summary <- renderDataTable(
   datatable(
-    df_out,
+    df_filtered_stats(),
     #  colnames = c(ID = 1),
     selection = 'none',
     extensions = c('Buttons', 'ColReorder'),
-    options = list(dom = 'Bfrtip',
+    options = list(dom = 'Bfrtip', pageLength = 100,
                    buttons = c('copy', 'csv','excel', 'pdf'),
                    editable=FALSE, colReorder = list(realtime = FALSE), columnDefs = list(list(className = 'dt-center', targets = '_all'))
     ) 
   ) 
-  
-  
+  #   %>% formatRound(n, digits=0)
+) 
 
-})
-###########################################
 
-###########################################
-#### Render the differences summary as a table ###########
+
+#### RenderDataTable: differences ###########
 
 output$data_diffs <- renderDataTable({
   
@@ -1108,7 +1479,101 @@ output$data_diffs <- renderDataTable({
   ) 
   
 })
-###########################################
+
+
+###### Figure legend #########
+Fig_legend <- renderText({
+  
+  if (input$rotate_plot == TRUE) {
+    x <- "horizontal"
+    y <- "vertical"
+    orient <- "bottom"
+  }
+  else if (input$rotate_plot == FALSE) {
+    x <- "vertical"
+    y <- "horizontal"
+    orient <- "right"
+  }
+  
+  df_temp <- df_summary_mean()
+  min_n <- min(df_temp$n)
+  
+  if (input$jitter_type == "quasirandom" || input$jitter_type == "random") { jitter <- c("jittered dots")}
+  else if (input$jitter_type == "stripes") {jitter <- c("stripes")}
+  else if (input$jitter_type == "none") {jitter <- ("dots")}
+  
+  if (input$summaryInput == "median" && input$add_CI == FALSE)  { stats <- paste(x," line indicating the median ")}
+  else if (input$summaryInput == "mean" && input$add_CI == FALSE) {stats <- paste(x," line indicating the mean ")}
+  else if (input$summaryInput == "box" && input$add_CI == FALSE && min_n>9) {stats <- paste("a boxplot, with the box indicating the IQR and ", x," line indicating the median ")}
+  else if (input$summaryInput == "violin" && min_n>9) {stats <- paste("a violinplot reflecting the data distribution and a ", x," line indicating the median ")}  
+  
+  
+  else if (input$summaryInput == "median" && input$add_CI == TRUE)  { stats <- c("an open circle indicating the median ")}
+  else if (input$summaryInput == "mean" && input$add_CI == TRUE) {stats <- c("an open circle indicating the mean ")}
+  else if (input$summaryInput == "box" && input$add_CI == TRUE) {stats <- paste("a boxplot, with the box indicating the IQR and ", x," line indicating the median ")}
+  
+  if (input$add_CI == TRUE && min_n>9 && input$summaryInput != "box" && input$summaryInput != "mean") {stat_inf <- paste(" A ", y," bar indicates for each median the 95% confidence interval determined by bootstrapping. ")}
+  else if (input$add_CI == TRUE && min_n>9 && input$summaryInput == "box") {stat_inf <- c("The notches represent for each median the 95% confidence interval (approximated by 1.58*IQR/sqrt(n)). ")}
+  else if (input$add_CI == TRUE && min_n>9 && input$summaryInput == "mean") {stat_inf <- c(" A ", y," bar indicates for each mean the 95% confidence interval. ")}
+  else {stat_inf <- NULL}
+  
+  
+  Legend <- c('</br></br><h4>Figure description</h4>')
+  
+  #The width of the legend (style as a paragraph between <p></p>) is adjusted to the width of the plot
+  
+  Legend<-append(Legend, paste('<p style="width:',input$plot_width,'px;padding: 0px 15px 0px 40px">', sep=""))
+  
+  Legend <- NULL
+  
+  Legend<-append(Legend, paste("Graph that shows the data as ", jitter," (visibility: ", input$alphaInput, "). ", sep=""))
+  
+  #Concatenate the condition with n
+  koos <- df_summary_mean() %>% unite(label_n, c(Condition, n), sep="=", remove = FALSE)
+  label_n <- paste(koos$label_n,collapse=", ")
+  Legend <-append(Legend, paste("The number of samples per condition is: " ,label_n, ". ",sep=""))
+  
+  Legend<-append(Legend, paste("The summary of the data is shown as ", stats," (visibility: ", input$alphaInput_summ, "). ", sep=""))
+  
+  Legend <-append(Legend, paste(stat_inf, sep=""))
+  
+  if (input$color_data ==TRUE || input$color_stats) {Legend<-append(Legend, "The color coding is indicated in the legend next to the plot. ")		}
+  
+  if (input$ordered =="median") {Legend<-append(Legend, "The data are ordered according to their median value. ")		}
+  
+  if (input$scale_log_10) {Legend<-append(Legend, "The values are plotted on a log10 scale. ")		}
+  
+  if (input$show_diffs) {
+    Legend<-append(Legend, paste("The plot on the ", orient," shows the effect size, relative to: ", input$zero,". The bootstrap samples that are used to calculate the 95%CI of the effect size are shown as a distribution", sep=""))
+    
+    }
+  
+  
+  
+    return(Legend)
+  
+})
+
+######## Figure Legend in HTML format #############
+
+output$LegendText <- renderText({
+  
+  if (input$add_description == FALSE || input$rotate_plot == TRUE) {return(NULL)}
+  
+  HTML_Legend <- c('</br></br></br></br><h4>Figure description</h4>')
+  
+  #The width of the legend (style as a paragraph between <p></p>) is adjusted to the width of the plot
+  
+  HTML_Legend <-append(HTML_Legend, paste('<p style="width:',input$plot_width,'px;padding: 0px 15px 0px 40px">', sep=""))
+  
+  HTML_Legend <- append(HTML_Legend, Fig_legend())
+  
+  HTML_Legend <- append(HTML_Legend, paste("</p>"))
+  
+})
+
+
+######## The End; close server ########################
 
 } #close "server"
 
