@@ -83,7 +83,7 @@ Tol_light <- c('#BBCC33', '#AAAA00', '#77AADD', '#EE8866', '#EEDD88', '#FFAABB',
 
 
 #Read a text file (comma separated values)
-df_wide_example <- read.csv("Data_wide_example.csv", na.strings = "")
+df_wide_example <- read.csv("Area_in_um-GEFs.csv", na.strings = "")
 df_tidy_example <- read.csv("Data_tidy_example.csv", na.strings = "")
 
 ###### UI: User interface #########
@@ -597,7 +597,7 @@ url <- reactive({
     color <- c(input$colour_list, input$user_color_list)
   }
   
-  label <- c(input$add_title, input$title, input$label_axes, input$lab_x, input$lab_y, input$adj_fnt_sz)
+  label <- c(input$add_title, input$title, input$label_axes, input$lab_x, input$lab_y, input$adj_fnt_sz, input$fnt_sz_ttl, input$fnt_sz_ax, input$add_description)
   
   #replace FALSE by "" and convert to string with ; as seperator
   data <- sub("FALSE", "", data)
