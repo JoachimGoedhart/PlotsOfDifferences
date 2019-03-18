@@ -15,6 +15,8 @@ The data can be supplied in spreadsheet/long format (e.g. by copy-pasting from e
 
 The differences plot can be saved as a PDF file, which can be opened and edited with Adobe Illustrator to allow for fine adjustments of the lay-out.
 
+More information can be found in [the preprint](http://biorxiv.org/cgi/content/short/578575v1)
+
 
 ### Running the App
 

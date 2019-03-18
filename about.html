@@ -6,13 +6,29 @@
 
 
 <h3>About PlotsOfDifferences</h3>
-<p>The PlotsOfDifferences Shiny app plots the data, statistics and (optional) differences to enable the comparison of (experimental) conditions. The philosophy of the approach is that plotting the raw data (instead of a summary) improves transparency and interpretation. To further facilitate the comparison, summary statistics (mean, median, boxplot) and inferential statistics (confidence intervals) can be added. The user has full control over the visibility of the raw data and statistics by adjustment of the transparency (alpha). Finally, differences between central tendency (mean or median) can be quantified, reflecting effect size. To this end, a reference condition ('control') must be defined, which can be changed by the user. The 95%CI of the difference per condition is calculated from 1000 bootstrap samples (their distribution is shown in the difference plot) of the statistic (mean of median).</p>
+<p>The PlotsOfDifferences Shiny app plots the data, statistics and (optional) differences to enable the comparison of (experimental) conditions. The philosophy of the approach is that plotting the raw data (instead of a summary) improves transparency and interpretation. To further facilitate the comparison, summary statistics (mean, median, boxplot) and inferential statistics (confidence intervals) can be added. The user has full control over the visibility of the raw data and statistics by adjustment of the transparency (alpha). Finally, differences between central tendency (mean or median) can be quantified, reflecting effect size. To this end, a reference condition ('control') must be defined, which can be changed by the user. The 95%CI of the difference per condition is calculated from 1000 bootstrap samples (their distribution is shown in the difference plot) of the statistic (mean of median).</br>
+More details about the PlotsOfDifferences app can be found in our <a href="http://biorxiv.org/cgi/content/short/578575v1">preprint</a>.</br> 
+</p>
 
-<h4>Source</h4>
+<h4>Contact</h4>
 <p>PlotsOfDifferences is created and maintained by Joachim Goedhart (<a href="https://twitter.com/joachimgoedhart">@joachimgoedhart</a>) and Marten Postma</br>
 
+Bug reports and feature requests can be communicated in several ways: 
+<ul>
+<li>Github: <a href="https://github.com/JoachimGoedhart/PlotsOfDifferences/issues">PlotsOfDifferences/issues</a></li>
+<li>Twitter: <a href="https://twitter.com/joachimgoedhart">@joachimgoedhart</a></li>
+
+<li>Email: <a href="mailto:
+&#106;&#046;&#103;&#111;&#101;&#100;&#104;&#097;&#114;&#116;&#064;&#117;&#118;&#097;&#046;&#110;&#108;">&#106;&#046;&#103;&#111;&#101;&#100;&#104;&#097;&#114;&#116;&#064;&#117;&#118;&#097;&#046;&#110;&#108;</a></li>
+</ul>
+
+
+<h4>Source</h4>
 Source code is available at <a href="https://github.com/JoachimGoedhart/PlotsOfDifferences">github/JoachimGoedhart</a>
 </br>
+Please cite this preprint if you use the app: "PlotsOfDifferences - a web app for the quantitative comparison of unpaired data" - doi: <a href="https://doi.org/10.1101/578575">10.1101/578575</a>
+</br>
+
 
 </p>
 
@@ -25,9 +41,19 @@ The code for the shiny app is partially derived from <a href="https://github.com
  by <a href="https://www.gertstulp.com">Gert Stulp</a></br>
 The colorblind safe palettes were developed by <a href="https://personal.sron.nl/~pault/">Paul Tol</a>.</p>
 
-<h4>Further reading</h4>
+<h4>Background info</h4>
 <p>Some aspects of the app are explained in <a href="http://thenode.biologists.com/author/joachimg/">blogs at The Node</a>:
 </br>
+
+
+<a href="http://thenode.biologists.com/quantification-of-differences-as-alternative-for-p-values/research/">Make a difference</a> (On the effect size as an alternative of p-values for quantifiying differences)
+</br>
+
+
+<a href="http://thenode.biologists.com/user-friendly-p-values/research/">User-friendly p-values</a> (On the intuitive calculation of p-values with a randomization method)
+</br>
+
+
 <a href="http://thenode.biologists.com/leaving-bar-five-steps/">Leaving the bar</a> (On plotting the actual data rather than summaries)
 </br>
 <a href="http://thenode.biologists.com/a-better-bar/education/">A better bar</a> (Explains the calculation of 95% CI for the median)
