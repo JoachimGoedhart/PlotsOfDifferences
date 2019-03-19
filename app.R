@@ -44,8 +44,13 @@ library(readxl)
 library(DT)
 library(RCurl)
 library(gridExtra)
+library(shinycssloaders)
 
 source("geom_flat_violin.R")
+
+######## Increase maximum upload size to 30 MB #######
+options(shiny.maxRequestSize=30*1024^2)
+
 
 ###### Functions ##########
 
@@ -332,7 +337,7 @@ conditionalPanel(
                            actionButton("legend_copy", icon = icon("clone"),
                                         label = "Copy Legend"),
                            
-                          div(`data-spy`="affix", `data-offset-top`="10", plotOutput("coolplot"),
+                          div(`data-spy`="affix", `data-offset-top`="10", withSpinner(plotOutput("coolplot")),
                               htmlOutput("LegendText", width="200px", inline =FALSE),
                               NULL)
                   ), 
@@ -343,9 +348,9 @@ conditionalPanel(
                            conditionalPanel(
                              condition = "input.summaryInput!='mean'",
                              h4("Summary of the differences - based on medians")),
-                           dataTableOutput('data_diffs'),
+                           withSpinner(dataTableOutput('data_diffs')),
                            h4("Summary of the data"),
-                           dataTableOutput('data_summary')
+                           withSpinner(dataTableOutput('data_summary'))
 
                             ),
                   tabPanel("About", includeHTML("about.html")

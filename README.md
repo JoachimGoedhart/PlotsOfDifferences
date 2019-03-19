@@ -36,7 +36,7 @@ Or download it to use it offline:
 -Select 'Run All' (shortcut is command-option-R on a Mac) or click on "Run App" (upper right button on the window)
 
 This should launch a web browser with the Shiny app.
-Note that the app depends on several R packages that need to be installed (shiny, ggplot2, dplyr, tidyr, readr, magrittr, ggbeeswarm, readxl, gridExtra). It also uses geom_flat_violin.R (https://gist.github.com/dgrtwo/eb7750e74997891d7c20)
+Note that the app depends on several R packages that need to be installed (shiny, ggplot2, dplyr, tidyr, readr, magrittr, ggbeeswarm, readxl, DT, RCurl, gridExtra, shinycssloaders). It also uses geom_flat_violin.R (https://gist.github.com/dgrtwo/eb7750e74997891d7c20)
 
 
 ### Credits
