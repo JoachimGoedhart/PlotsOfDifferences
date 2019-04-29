@@ -486,14 +486,6 @@ observe({
 
 observeEvent(input$x_var != 'none' && input$y_var != 'none', {
   
-  
-  # if (input$x_var == 'none' && input$tidyInput == TRUE && input$tabs=="Plot") {
-  #   showModal(modalDialog(
-  #     title = NULL,
-  #     "Select a row for the conditions", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
-  #   ))
-  # } else
-    
     if (input$x_var != 'none' && input$y_var != 'none') {
 
     koos <- df_selected()
@@ -502,30 +494,6 @@ observeEvent(input$x_var != 'none' && input$y_var != 'none', {
     updateSelectInput(session, "zero", choices = conditions_list)
     } 
 })
-
-
-
-########### Check whether  conditions and values are selected for tidy data
-
-observeEvent(input$tabs=="Plot" && input$tidyInput == TRUE, {
-  
-
-
-  if (input$x_var == 'none' || input$y_var == 'none') {
-  showModal(modalDialog(
-    title = NULL,
-    "Select a row for the condition and a row for the values", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
-  ))
-  
-  }
-  
-  
-})
-
-
-
-
-
 
 
 ########### GET INPUT VARIABLEs FROM HTML ##############
@@ -778,7 +746,15 @@ klaas <-  df_selected()
 
 df_selected <- reactive({
     if(input$tidyInput == TRUE ) {
-    df_temp <- df_upload_tidy() 
+    df_temp <- df_upload_tidy()
+    
+      if (input$x_var == 'none' || input$y_var == 'none') {
+        showModal(modalDialog(
+          title = NULL,
+          "Error: you need to select a column for the condition and a column for the values", easyClose=TRUE
+        ))
+      }
+    
     x_choice <- input$x_var
     y_choice <- input$y_var
     
@@ -1082,7 +1058,6 @@ output$downloadPlotPNG <- downloadHandler(
 
 plot_data <-  reactive ({
 
-  
   ####### Read the order from the ordered dataframe #############  
   koos <- df_sorted()
   
@@ -1137,18 +1112,10 @@ plot_data <-  reactive ({
   klaas <- df_upload_tidy() 
   klaas <- as.data.frame(klaas)
   
-  
-  
-  
   max_colors <- nlevels(as.factor(koos$Condition))
   if(length(newColors) < max_colors) {
     newColors<-rep(newColors,times=(round(max_colors/length(newColors)))+1)
   }
-  
-  
-  
-  
-  
   
   ########## Define if/how color is used for the stats ############
   #    observe({ print(class(input$colour_list)) })
@@ -1193,7 +1160,8 @@ plot_data <-  reactive ({
 
     #### plot individual measurements (middle layer) ####
     if (input$jitter_type == "quasirandom") {
-      p <- p + geom_quasirandom(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), shape = 16, varwidth = TRUE, cex=3.5, alpha=input$alphaInput)
+ #     p <- p + geom_quasirandom(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), shape = 16, varwidth = TRUE, cex=3.5, alpha=input$alphaInput)
+      p <- p + geom_quasirandom(data=df_upload_tidy(), aes_string(x=x_choice, y=y_choice, colour = kleur), shape = 16, varwidth = TRUE, cex=3.5, alpha=input$alphaInput)
       
       #Uncomment for sinaplot    } else if (input$jitter_type == "sina") {
       #Uncomment for sinaplot p <- p + geom_sina(data=klaas, aes_string(x=x_choice, y=y_choice, colour = kleur), method="density", maxwidth = .8, cex=3, alpha=input$alphaInput)
@@ -1313,14 +1281,14 @@ plot_diffs <- reactive ({
     newColors <- gsub("\\s","", strsplit(input$user_color_list,",")[[1]])
   }
   
-  ######## Repeat the colors, if number of colors < number of conditions
-  klaas <- df_selected()
-  max_colors <- nlevels(as.factor(klaas$Condition))
+  ######## The df_upload_tidy is used for defining colors, needed for compatibility with tidy data and for coloring factors
+  klaas <- df_upload_tidy() 
+  klaas <- as.data.frame(klaas)
+  
+  max_colors <- nlevels(as.factor(koos$Condition))
   if(length(newColors) < max_colors) {
     newColors<-rep(newColors,times=(round(max_colors/length(newColors)))+1)
   }
-  
-  
   
   ########## Set default to Plotting "Condition" and "Value"
   if (input$x_var == "none") {
@@ -1340,8 +1308,7 @@ plot_diffs <- reactive ({
   if (input$color_data == FALSE) {
     kleur <- NULL
   } else if (input$color_data == TRUE) {
-    #    kleur <- as.character(input$colour_list)
-    kleur <- x_choice
+    kleur <- "Condition"
   }
   
   ########## Define if/how color is used for the stats
