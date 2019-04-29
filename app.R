@@ -338,7 +338,7 @@ conditionalPanel(
                                         label = "Copy Legend"),
                            
                           div(`data-spy`="affix", `data-offset-top`="10", withSpinner(plotOutput("coolplot")),
-                              htmlOutput("LegendText", width="200px", inline =FALSE),
+                                  htmlOutput("LegendText", width="200px", inline =FALSE),
                               NULL)
                   ), 
                   tabPanel("Summary",
@@ -460,13 +460,72 @@ observe({
 #        updateSelectInput(session, "colour_list", choices = var_list)
         updateSelectInput(session, "y_var", choices = var_list)
         updateSelectInput(session, "x_var", choices = var_list)
-
-        # Get a list of the different conditions        
-        koos <- df_upload_tidy()
-        conditions_list <- as.factor(koos$Condition)
-        updateSelectInput(session, "zero", choices = conditions_list)
-        
         })
+
+
+##### Get the list of Conditions (necessary to select the control condition for comparison) ##############
+
+        
+observe({ 
+          
+  ########### This is NULL for tidy - needs to be fixed ######
+
+        if(input$tidyInput == FALSE ) {
+          koos <- df_upload_tidy()
+          conditions_list <- as.factor(koos$Condition)
+          observe(print((conditions_list)))
+          updateSelectInput(session, "zero", choices = conditions_list)
+        }
+
+
+        
+})
+
+
+########### When x_var is selected for tidy data, get the list of conditions
+
+observeEvent(input$x_var != 'none' && input$y_var != 'none', {
+  
+  
+  # if (input$x_var == 'none' && input$tidyInput == TRUE && input$tabs=="Plot") {
+  #   showModal(modalDialog(
+  #     title = NULL,
+  #     "Select a row for the conditions", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
+  #   ))
+  # } else
+    
+    if (input$x_var != 'none' && input$y_var != 'none') {
+
+    koos <- df_selected()
+    conditions_list <- as.factor(koos$Condition)
+    observe(print((conditions_list)))
+    updateSelectInput(session, "zero", choices = conditions_list)
+    } 
+})
+
+
+
+########### Check whether  conditions and values are selected for tidy data
+
+observeEvent(input$tabs=="Plot" && input$tidyInput == TRUE, {
+  
+
+
+  if (input$x_var == 'none' || input$y_var == 'none') {
+  showModal(modalDialog(
+    title = NULL,
+    "Select a row for the condition and a row for the values", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
+  ))
+  
+  }
+  
+  
+})
+
+
+
+
+
 
 
 ########### GET INPUT VARIABLEs FROM HTML ##############
@@ -639,7 +698,7 @@ url <- reactive({
 ############# Pop-up that displays the URL to 'clone' the current settings ################
 
 observeEvent(input$settings_copy , {
-  showModal(urlModal(url=url(), title = "Use the URL to launch PlotsOfData with the current setting"))
+  showModal(urlModal(url=url(), title = "Use the URL to launch PlotsOfDifferences with the current setting"))
 })
 
 observeEvent(input$legend_copy , {
@@ -1051,15 +1110,6 @@ plot_data <-  reactive ({
     newColors <- gsub("\\s","", strsplit(input$user_color_list,",")[[1]])
   }
   
-######## Repeat the colors, if number of colors < number of conditions
-  klaas <- df_selected()
-  max_colors <- nlevels(as.factor(klaas$Condition))
-  if(length(newColors) < max_colors) {
-    newColors<-rep(newColors,times=(round(max_colors/length(newColors)))+1)
-  }
-
-  
-  
 ########## Set default to Plotting "Condition" and "Value"
     if (input$x_var == "none") {
       x_choice <- "Condition"
@@ -1081,6 +1131,24 @@ plot_data <-  reactive ({
     #    kleur <- as.character(input$colour_list)
     kleur <- x_choice
   }
+  
+  
+  ######## The df_upload_tidy is used for defining colors, needed for compatibility with tidy data and for coloring factors
+  klaas <- df_upload_tidy() 
+  klaas <- as.data.frame(klaas)
+  
+  
+  
+  
+  max_colors <- nlevels(as.factor(koos$Condition))
+  if(length(newColors) < max_colors) {
+    newColors<-rep(newColors,times=(round(max_colors/length(newColors)))+1)
+  }
+  
+  
+  
+  
+  
   
   ########## Define if/how color is used for the stats ############
   #    observe({ print(class(input$colour_list)) })
