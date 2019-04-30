@@ -1327,7 +1327,7 @@ plot_diffs <- reactive ({
   
   if (input$color_data == FALSE) {
     
-    p2 <- p2 + geom_flat_violin(data = df_diffs(), aes_string(x="Condition", y="Difference"), alpha=0.9, fill = "grey20", scale = "width", color =NA,position = position_nudge(x = -0.0, y = 0))
+    p2 <- p2 + geom_flat_violin(data = df_diffs(), aes_string(x="Condition", y="Difference"), alpha=0.9, fill = "grey50", scale = "width", color =NA,position = position_nudge(x = -0.0, y = 0))
   } else if (input$color_data == TRUE) {
     p2 <- p2 + geom_flat_violin(data = df_diffs(), aes_string(x="Condition", y="Difference", fill=kleur), alpha=0.9, scale = "width", color =NA,position = position_nudge(x = -0.0, y = 0))
     
