@@ -52,4 +52,6 @@ PlotsOfData is created and maintained by Joachim Goedhart ([@joachimgoedhart](ht
 
 ![alt text](https://github.com/JoachimGoedhart/PlotsOfDifferences/blob/master/DifferencesPlot_example1.png "Output")
 
+#### Counter
 
+[![HitCount](http://hits.dwyl.com/JoachimGoedhart/PlotsOfDifferences.svg)](http://hits.dwyl.com/JoachimGoedhart/PlotsOfDifferences)
