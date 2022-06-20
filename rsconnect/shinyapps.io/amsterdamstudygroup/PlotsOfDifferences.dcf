@@ -1,0 +1,12 @@
+name: PlotsOfDifferences
+title: PlotsOfDifferences
+username:
+account: amsterdamstudygroup
+server: shinyapps.io
+hostUrl: https://api.shinyapps.io/v1
+appId: 5732376
+bundleId: 5616626
+url: https://amsterdamstudygroup.shinyapps.io/PlotsOfDifferences/
+when: 1645780364.29365
+asMultiple: FALSE
+asStatic: FALSE

@@ -91,6 +91,11 @@ Tol_light <- c('#BBCC33', '#AAAA00', '#77AADD', '#EE8866', '#EEDD88', '#FFAABB',
 df_wide_example <- read.csv("Area_in_um-GEFs.csv", na.strings = "")
 df_tidy_example <- read.csv("Data_tidy_example.csv", na.strings = "")
 
+
+# Create a reactive object here that we can share between all the sessions.
+vals <- reactiveValues(count=0)
+
+
 ###### UI: User interface #########
 
 ui <- fluidPage(
@@ -152,7 +157,8 @@ ui <- fluidPage(
                                          label = "Log scale",
                                          value = FALSE),
                  
-                 textInput("range", "Range of values (min,max)", value = "")),
+                 textInput("range", "Range for values (min,max)", value = ""),
+                  textInput("diff_range", "Range for differences (min,max)", value = "")),
         
                 checkboxInput("color_data", "Use color for the data", value=FALSE),
         checkboxInput("color_stats", "Use color for the stats", value=FALSE),
@@ -286,7 +292,9 @@ conditionalPanel(
     #         selectInput("v_facet", "Separate vertical:", choices = ""),
     
     NULL
-  ), 
+  ),
+  # selectInput("use_these_conditions", "Select and order:", "", multiple = TRUE),
+  # hr(),
   
   conditionalPanel(
     condition = "input.tidyInput==false", (downloadButton("downloadData", "Download in tidy format (csv)"))),
@@ -304,7 +312,15 @@ conditionalPanel(
 
       conditionalPanel(
         condition = "input.tabs=='About'",
-        h4("About")    
+
+        #Session counter: https://gist.github.com/trestletech/9926129
+        h4("About"),  "There are currently", 
+        verbatimTextOutput("count"),
+        "session(s) connected to this app.",
+        hr(),
+        h4("Find our other dataViz apps at:"),a("https://huygens.science.uva.nl/", href = "https://huygens.science.uva.nl/")
+        
+          
       ),
       
       conditionalPanel(
@@ -365,6 +381,7 @@ conditionalPanel(
 
 server <- function(input, output, session) {
 
+  isolate(vals$count <- vals$count + 1)
   ###### DATA INPUT ###################
   
   df_upload <- reactive({
@@ -1345,6 +1362,21 @@ plot_diffs <- reactive ({
   ########### Do some formatting of the lay-out
   p2 <- p2 + theme_light(base_size = 16)
   
+  
+  #Adjust scale if range (min,max) is specified
+  if (input$diff_range != "" &&  input$change_scale == TRUE) {
+    rng <- as.numeric(strsplit(input$diff_range,",")[[1]])
+    
+    #If min>max invert the axis
+    if (rng[1]>rng[2]) {p2 <- p2 + scale_y_reverse()}
+    
+    #Autoscale if rangeis NOT specified
+  } else if (input$diff_range == "" || input$change_scale == FALSE) {
+    rng <- c(NULL,NULL)
+  }
+  
+  p2 <- p2 + coord_cartesian(ylim=c(rng[1],rng[2]))
+  
   # if font size is adjusted
   if (input$adj_fnt_sz) {
     p2 <- p2 + theme(axis.text = element_text(size=input$fnt_sz_ax))
@@ -1355,7 +1387,7 @@ plot_diffs <- reactive ({
   if (input$add_title)
     p2 <- p2 + ggtitle(" ")
   if (input$rotate_plot == FALSE) {
-    p2 <- p2 + coord_flip()
+    p2 <- p2 + coord_flip(ylim=c(rng[1],rng[2]))
     p2 <- p2 + labs(x = NULL)
     p2 <- p2 + theme(axis.text.y = element_text(size=0))
   }
@@ -1612,6 +1644,16 @@ output$LegendText <- renderText({
   
 })
 
+########### Update count #########
+# Reactively update the client.
+output$count <- renderText({
+  vals$count
+})
+
+# When a session ends, decrement the counter.
+session$onSessionEnded(function(){
+  isolate(vals$count <- vals$count - 1)
+})
 
 ######## The End; close server ########################
 
