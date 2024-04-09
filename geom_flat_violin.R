@@ -5,6 +5,7 @@
 
 library(ggplot2)
 library(dplyr)
+library(plyr)
 
 
 "%||%" <- function(a, b) {
@@ -43,7 +44,7 @@ GeomFlatViolin <-
             # ymin, ymax, xmin, and xmax define the bounding rectangle for each group
             data %>%
               group_by(group) %>%
-              mutate(ymin = min(y),
+              dplyr::mutate(ymin = min(y),
                      ymax = max(y),
                      xmin = x,
 #                     xmax = x + width / 1.3)
@@ -69,7 +70,7 @@ GeomFlatViolin <-
           
           draw_key = draw_key_polygon,
           
-          default_aes = aes(weight = 1, colour = "grey20", fill = "white", size = 0.5,
+          default_aes = aes(weight = 1, colour = "grey20", fill = "white", linewidth = 0.5,
                             alpha = NA, linetype = "solid"),
           
           required_aes = c("x", "y")

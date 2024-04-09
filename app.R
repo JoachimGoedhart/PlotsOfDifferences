@@ -34,17 +34,25 @@
 ##### Define dependencies ######
 
 library(shiny)
+library(plyr)
 library(ggplot2)
-library(dplyr)
-library(tidyr)
-library(readr)
-library(magrittr)
+library(tidyverse)
 library(ggbeeswarm)
 library(readxl)
 library(DT)
 library(RCurl)
-library(gridExtra)
 library(shinycssloaders)
+library(patchwork)
+library(conflicted)
+
+conflicts_prefer(
+  dplyr::filter(),
+  dplyr::mutate(),
+  dplyr::summarise(),
+  dplyr::select(),
+  DT::dataTableOutput(),
+  DT::renderDataTable,
+)
 
 source("geom_flat_violin.R")
 
@@ -490,7 +498,7 @@ observe({
         if(input$tidyInput == FALSE ) {
           koos <- df_upload_tidy()
           conditions_list <- as.factor(koos$Condition)
-          observe(print((conditions_list)))
+          #  observe(print((conditions_list)))
           updateSelectInput(session, "zero", choices = conditions_list)
         }
 
@@ -507,7 +515,7 @@ observeEvent(input$x_var != 'none' && input$y_var != 'none', {
 
     koos <- df_selected()
     conditions_list <- as.factor(koos$Condition)
-    observe(print((conditions_list)))
+    #  observe(print((conditions_list)))
     updateSelectInput(session, "zero", choices = conditions_list)
     } 
 })
@@ -695,7 +703,7 @@ observeEvent(input$legend_copy , {
 observeEvent(input$summaryInput , {
   df_temp <- df_summary_mean()
   min_n <- min(df_temp$n)
-  if (input$summaryInput == "box" && min_n<10) {
+  if (input$summaryInput == "boxplot" && min_n<10) {
     showModal(modalDialog(
       title = NULL,
       "You have selected a boxplot as summary, but one of the conditions has less than 10 datapoints - For n<10 the boxplot is not a suitable summary", easyClose=TRUE, footer = modalButton("Click anywhere to dismiss")
@@ -1006,45 +1014,19 @@ output$downloadPlotPDF <- downloadHandler(
   },
   content <- function(file) {
 
-    plotlist <- list(plot_data(), plot_diffs())
-    to_keep <- !sapply(plotlist,is.null)
-    plotlist <- plotlist[to_keep] 
+
     if (input$rotate_plot == TRUE) {
       pdf(file, width = input$plot_width/72, height = input$plot_height/72*2)
-      
-      grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
+      plot(plot_data() / plot_diffs())
     } else if (input$rotate_plot == FALSE) {
       pdf(file, width = input$plot_width/72*2, height = input$plot_height/72)
-      grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
+      plot(plot_data() + plot_diffs())
     }
     
     dev.off()
   },
   contentType = "application/pdf" # MIME type of the image
 )
-
-# output$downloadPlotSVG <- downloadHandler(
-#   filename <- function() {
-#     paste("PlotsOfDiffs_", Sys.time(), ".svg", sep = "")
-#   },
-#   content <- function(file) {
-#     
-#     plotlist <- list(plot_data(), plot_diffs())
-#     to_keep <- !sapply(plotlist,is.null)
-#     plotlist <- plotlist[to_keep] 
-#     if (input$rotate_plot == TRUE) {
-#       svg(file, width = input$plot_width/72, height = input$plot_height/72*2)
-#       grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
-#     } else if (input$rotate_plot == FALSE) {
-#       svg(file, width = input$plot_width/72*2, height = input$plot_height/72)
-#       grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
-#     }
-#     
-#     dev.off()
-#   },
-#   contentType = "application/svg" # MIME type of the image
-# )
-
 
 
 output$downloadPlotPNG <- downloadHandler(
@@ -1053,16 +1035,13 @@ output$downloadPlotPNG <- downloadHandler(
   },
   content <- function(file) {
     
-    plotlist <- list(plot_data(), plot_diffs())
-    to_keep <- !sapply(plotlist,is.null)
-    plotlist <- plotlist[to_keep]
     if (input$rotate_plot == TRUE) {
       png(file, width = input$plot_width*4, height = input$plot_height*8, res=300)
-      grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
+      plot(plot_data() / plot_diffs())
     } else if (input$rotate_plot == FALSE) {
       png(file, width = input$plot_width*8, height = input$plot_height*4, res=300)
       
-      grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
+      plot(plot_data() + plot_diffs())
     }
     
     dev.off()
@@ -1407,23 +1386,26 @@ plot_diffs <- reactive ({
     p2 <- p2+ scale_color_manual(values=newColors)
     p2 <- p2+ scale_fill_manual(values=newColors)
   }
-  
-  p2 
+
+  # This does not work, geom_flat_violin does not work 
+  # ggplot(diamonds, aes(cut, carat)) +
+  #   geom_flat_violin() +
+  #   coord_flip()
+
+  p2
   
 })
 
 ############### RenderPLOT #########
 output$coolplot <- renderPlot(width = width, height = height, {     
 
-  plotlist <- list(plot_data(), plot_diffs())
-  to_keep <- !sapply(plotlist,is.null)
-  plotlist <- plotlist[to_keep]
   if (input$rotate_plot == TRUE) {
-    grid.arrange(grobs=plotlist, nrow=length(plotlist), ncol=1)
+    plot_data() / plot_diffs()
   } else if (input$rotate_plot == FALSE) {
-    
-    grid.arrange(grobs=plotlist, nrow=1, ncol=length(plotlist)) 
+
+    plot_data() + plot_diffs()
   }
+  
   
 }) #close output$coolplot
 
@@ -1483,7 +1465,7 @@ observeEvent(input$summaryInput, {
   else if (input$summaryInput=="median")  {
     updateSelectInput(session, "stats_select", selected = list("median", "MAD", "95CI median"))
   }
-  else if (input$summaryInput=="box")  {
+  else if (input$summaryInput=="boxplot")  {
     updateSelectInput(session, "stats_select", selected = list("median", "IQR", "95CI median"))
   }
   else if (input$summaryInput=="violin")  {
@@ -1576,16 +1558,16 @@ Fig_legend <- renderText({
   
   if (input$summaryInput == "median" && input$add_CI == FALSE)  { stats <- paste(x," line indicating the median ")}
   else if (input$summaryInput == "mean" && input$add_CI == FALSE) {stats <- paste(x," line indicating the mean ")}
-  else if (input$summaryInput == "box" && input$add_CI == FALSE && min_n>9) {stats <- paste("a boxplot, with the box indicating the IQR and ", x," line indicating the median ")}
+  else if (input$summaryInput == "boxplot" && input$add_CI == FALSE && min_n>9) {stats <- paste("a boxplot, with the box indicating the IQR and ", x," line indicating the median ")}
   else if (input$summaryInput == "violin" && min_n>9) {stats <- paste("a violinplot reflecting the data distribution and a ", x," line indicating the median ")}  
   
   
   else if (input$summaryInput == "median" && input$add_CI == TRUE)  { stats <- c("an open circle indicating the median ")}
   else if (input$summaryInput == "mean" && input$add_CI == TRUE) {stats <- c("an open circle indicating the mean ")}
-  else if (input$summaryInput == "box" && input$add_CI == TRUE) {stats <- paste("a boxplot, with the box indicating the IQR and ", x," line indicating the median ")}
+  else if (input$summaryInput == "boxplot" && input$add_CI == TRUE) {stats <- paste("a boxplot, with the box indicating the IQR and ", x," line indicating the median ")}
   
-  if (input$add_CI == TRUE && min_n>9 && input$summaryInput != "box" && input$summaryInput != "mean") {stat_inf <- paste(" A ", y," bar indicates for each median the 95% confidence interval determined by bootstrapping. ")}
-  else if (input$add_CI == TRUE && min_n>9 && input$summaryInput == "box") {stat_inf <- c("The notches represent for each median the 95% confidence interval (approximated by 1.58*IQR/sqrt(n)). ")}
+  if (input$add_CI == TRUE && min_n>9 && input$summaryInput != "boxplot" && input$summaryInput != "mean") {stat_inf <- paste(" A ", y," bar indicates for each median the 95% confidence interval determined by bootstrapping. ")}
+  else if (input$add_CI == TRUE && min_n>9 && input$summaryInput == "boxplot") {stat_inf <- c("The notches represent for each median the 95% confidence interval (approximated by 1.58*IQR/sqrt(n)). ")}
   else if (input$add_CI == TRUE && min_n>9 && input$summaryInput == "mean") {stat_inf <- c(" A ", y," bar indicates for each mean the 95% confidence interval. ")}
   else {stat_inf <- NULL}
   
